@@ -83,7 +83,10 @@ def market() -> JSONResponse:
 
 
 @app.get("/api/pipeline")
-def pipeline() -> JSONResponse:
+def pipeline_view() -> JSONResponse:
+    # Not named `pipeline`: that shadowed the imported `pipeline` module and
+    # every section endpoint started returning 500, because `pipeline.SECTIONS`
+    # was resolving to an attribute of this function.
     return JSONResponse({"postings": store.pipeline()})
 
 

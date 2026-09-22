@@ -170,3 +170,23 @@ def test_nothing_is_deleted_by_the_cap(db):
     store.save(postings, funnel(), db)
     everything = store.section("remote", per_company=99, path=db)
     assert len(everything) == 12
+
+
+def test_every_declared_section_has_a_working_endpoint():
+    """A route that 500s is worse than a missing one, and this pair did.
+
+    The /api/pipeline handler was named `pipeline`, which shadowed the
+    imported pipeline module, so every section endpoint raised
+    AttributeError on pipeline.SECTIONS while the page still rendered and
+    the tabs simply showed nothing.
+    """
+    from jobradar import api, pipeline as pl
+
+    for name in pl.SECTIONS:
+        assert api.section(name).status_code == 200, name
+    assert api.section("nonsense").status_code == 404
+    assert api.pipeline_view().status_code == 200
+    assert api.today().status_code == 200
+    assert api.yc().status_code == 200
+    assert api.killed().status_code == 200
+    assert api.market().status_code == 200
