@@ -55,12 +55,37 @@ Needs **Python 3.11+** and two packages. Everything else is standard library.
 
 ```bash
 pip install fastapi uvicorn
-python scripts/fetch.py          # crawl, filter, store
-python -m jobradar.api           # dashboard at http://127.0.0.1:8000
-python -m pytest                 # 51 tests
+python scripts/fetch.py               # crawl, filter, store
+python -m jobradar.api                # dashboard at http://127.0.0.1:8000
+python -m pytest                      # 61 tests
+
+python scripts/probe_companies.py --wide   # which company boards are real
 ```
 
-`install.bat` puts a shortcut on the Desktop that does both in one click.
+`install.bat` puts a shortcut on the Desktop that does the fetch and opens the
+dashboard in one click.
+
+## Six tabs
+
+| Tab | What it is for |
+|---|---|
+| **Today** | New since the last run, ranked. The only screen used daily |
+| **Sponsorship** | Explicit visa offers |
+| **Remote** | Global roles, and the contractor path |
+| **Killed** | Every rejection with the phrase that caused it — the trust screen |
+| **Pipeline** | What you applied to. Written by hand and by nothing else |
+| **Funnel** | The numbers above, for the last run |
+
+## Seed lists rot, so they are probed
+
+A list of ATS slugs is hand-written and goes stale: companies change provider,
+get acquired, or use a slug nobody guessed. The first version had 67 entries
+and **42 returned nothing** — invisible during a run, because a dead board and
+a board with no open roles look identical.
+
+`scripts/probe_companies.py` checks every slug and prints a ready-to-paste list
+of the ones that resolve. `--wide` also tries a candidate list. Growing this is
+the highest-leverage change available, well ahead of adding a model.
 
 ## There aren't 200 sources. There are about ten.
 

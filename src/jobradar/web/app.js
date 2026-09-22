@@ -55,6 +55,33 @@ function row(p) {
   }
   node.append(why);
 
+  // Marking a posting applied is the one thing here a human does rather than
+  // the crawl. Without a control it was an endpoint nobody could reach, which
+  // is a feature that looks implemented and is not.
+  if (!p.reason && p.id) {
+    const states = ["applied", "replied", "rejected", "closed"];
+    const track = el("div", "track");
+    const current = el("span", "state", p.applied ? p.applied : "not applied");
+    if (p.applied) current.classList.add("on");
+    track.append(current);
+    states.forEach((s) => {
+      if (s === p.applied) return;
+      const b = el("button", "mark", s);
+      b.onclick = async () => {
+        b.disabled = true;
+        await fetch("/api/applied/" + p.id, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: s, noted: "" }),
+        });
+        p.applied = s;
+        node.replaceWith(row(p));
+      };
+      track.append(b);
+    });
+    node.append(track);
+  }
+
   const badges = el("div", "badges");
   if (v.scope) badges.append(badge(v.scope, v.scope));
   if (v.auth) badges.append(badge(v.auth.replace(/_/g, " "), v.auth));
@@ -139,11 +166,18 @@ async function loadMarket() {
   $("funnel").textContent = lines.join("\n");
 }
 
+async function loadPipeline() {
+  const data = await (await fetch("/api/pipeline")).json();
+  fill($("pipeline").querySelector(".rows"), data.postings,
+       "Nothing applied to yet. Mark a row on Today or in a section.");
+}
+
 const LOADERS = {
   today: loadToday,
   sponsorship: () => loadSection("sponsorship"),
   remote: () => loadSection("remote"),
   killed: loadKilled,
+  pipeline: loadPipeline,
   market: loadMarket,
 };
 

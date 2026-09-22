@@ -70,6 +70,11 @@ def market() -> JSONResponse:
     return JSONResponse({"run": run})
 
 
+@app.get("/api/pipeline")
+def pipeline() -> JSONResponse:
+    return JSONResponse({"postings": store.pipeline()})
+
+
 @app.post("/api/applied/{posting_id}")
 def applied(posting_id: str, body: Applied) -> JSONResponse:
     """The pipeline, updated by hand.

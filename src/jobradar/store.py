@@ -226,6 +226,27 @@ def kill_reasons(path: Path | None = None) -> list[dict]:
         conn.close()
 
 
+def pipeline(path: Path | None = None) -> list[dict]:
+    """What has been applied to, newest first.
+
+    Updated only by a human clicking. The design note is explicit that this is
+    the one part that should not be automated, so nothing in the crawl ever
+    writes here.
+    """
+    conn = connect(path)
+    try:
+        rows = conn.execute(
+            """
+            SELECT p.*, a.state AS applied, a.noted, a.at AS applied_at
+            FROM application a JOIN posting p ON p.id = a.posting_id
+            ORDER BY a.at DESC
+            """
+        ).fetchall()
+        return [_row(r) for r in rows]
+    finally:
+        conn.close()
+
+
 def last_run(path: Path | None = None) -> dict | None:
     conn = connect(path)
     try:
