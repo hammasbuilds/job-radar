@@ -13,6 +13,11 @@ if exist ".venv\Scripts\python.exe" (
     set "PY=python"
 )
 
+REM The package lives in src\ and is not installed, so `python -m jobradar.api`
+REM cannot find it without this. Leaving it out is how the shortcut opened a
+REM console that printed ModuleNotFoundError and closed.
+set "PYTHONPATH=%~dp0src"
+
 echo Refreshing job-radar...
 echo.
 "%PY%" scripts\fetch.py
