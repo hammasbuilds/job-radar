@@ -47,7 +47,20 @@ def clean(html: str | None) -> str:
     text = _TAG.sub(" ", text)
     for entity, char in _ENTITY.items():
         text = text.replace(entity, char)
-    text = re.sub(r"&#\d+;", " ", text)
+
+    # Numeric entities, decimal and hex. Hex was missing and Hacker News uses
+    # it heavily: every slash in a posting arrived as "&#x2F;", so a title read
+    # "Remote, PT&#x2F;ET hours" and a location phrase that spanned a slash
+    # never matched.
+    def _char(match: re.Match) -> str:
+        body = match.group(1)
+        try:
+            code = int(body[1:], 16) if body[:1].lower() == "x" else int(body)
+        except ValueError:
+            return " "
+        return chr(code) if 0 < code < 0x110000 else " "
+
+    text = re.sub(r"&#(x[0-9a-fA-F]+|\d+);", _char, text)
     text = _WS.sub(" ", text)
     return re.sub(r"\n\s*\n+", "\n\n", text).strip()
 
@@ -71,6 +84,26 @@ class Posting:
     score: float = 0.0
     evidence: str = ""
     section: str = ""
+
+    def __post_init__(self) -> None:
+        """Flatten `tags` to plain strings, whatever the source sent.
+
+        Sources disagree about the shape of a tag. Lever sends strings,
+        Jobicy sends `["Full-Time"]`, and Himalayas sends `employmentType`
+        as a list — which put a list inside the tuple and crashed the
+        employment filter on `t.strip()` after 786 postings had been
+        fetched. Normalising here means no filter has to defend itself,
+        and a new source cannot reintroduce it.
+        """
+        flat: list[str] = []
+        for tag in self.tags or ():
+            if isinstance(tag, str):
+                flat.append(tag)
+            elif isinstance(tag, (list, tuple, set)):
+                flat += [str(t) for t in tag if t]
+            elif tag is not None:
+                flat.append(str(tag))
+        object.__setattr__(self, "tags", tuple(t.strip() for t in flat if t.strip()))
 
     @property
     def key(self) -> str:

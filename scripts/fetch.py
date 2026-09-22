@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from jobradar import companies, pipeline, store  # noqa: E402
-from jobradar.sources import aggregators, greenhouse, lever  # noqa: E402
+from jobradar.sources import aggregators, boards, greenhouse, lever  # noqa: E402
 from jobradar.sources.http import SourceError  # noqa: E402
 
 FETCHERS = {"greenhouse": greenhouse.fetch, "lever": lever.fetch}
@@ -49,12 +49,18 @@ def collect(fresh: bool, quiet: bool = False) -> tuple[list, dict]:
         per_source[provider] = per_source.get(provider, 0) + len(got)
 
     for name, call in (("arbeitnow", aggregators.fetch_arbeitnow),
-                       ("remotive", aggregators.fetch_remotive)):
+                       ("remotive", aggregators.fetch_remotive),
+                       ("himalayas", boards.himalayas),
+                       ("jobicy", boards.jobicy),
+                       ("remoteok", boards.remoteok),
+                       ("themuse", boards.themuse),
+                       ("hn", boards.hacker_news)):
         try:
             got = call(**kw)
             postings += got
             per_source[name] = len(got)
-        except SourceError as exc:
+        except (SourceError, ValueError, OSError) as exc:
+            # One board being down must not cost the whole run.
             if not quiet:
                 print(f"  ! {name}: {exc}")
 

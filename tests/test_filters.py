@@ -286,3 +286,25 @@ def test_a_junior_title_that_demands_eight_years_is_not_junior():
     """The reason years are read at all: the title and the body disagree."""
     assert seniority.classify("AI Engineer")[0] == seniority.MID
     assert seniority.years_required("You will need 8 years of experience.") == 8
+
+
+def test_a_source_cannot_inject_a_non_string_tag():
+    """Sources disagree about what a tag is, and one crashed the run.
+
+    Lever sends strings, Jobicy sends ["Full-Time"], and Himalayas sends
+    employmentType as a list. The list ended up inside the tags tuple and the
+    employment filter died on t.strip() — after 786 postings had already been
+    fetched, so the whole crawl was wasted.
+    """
+    posting = Posting(
+        source="test", company="Acme", title="AI Engineer", location="",
+        url="https://example.com/1", text="",
+        tags=(["Full-Time", "Contract"], "Engineering", None, 42),
+    )
+    assert all(isinstance(t, str) for t in posting.tags)
+    assert "Full-Time" in posting.tags and "Contract" in posting.tags
+    assert "42" in posting.tags
+    # And the filter that crashed must now cope. The verdict is `either`
+    # rather than `contractor`: the flattened list holds both "Contract" and
+    # "Full-Time", and offering both is exactly what that verdict is for.
+    assert employment.classify(posting)[0] == employment.EITHER
