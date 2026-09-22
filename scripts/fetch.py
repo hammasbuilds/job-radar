@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,10 +75,28 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fresh", action="store_true", help="ignore the HTTP cache")
     parser.add_argument("--min-score", type=float, default=pipeline.MIN_SCORE)
+    parser.add_argument(
+        "--if-older-than", type=float, default=None, metavar="HOURS",
+        help="skip entirely when the last run is newer than this",
+    )
     args = parser.parse_args()
 
+    # The launcher passes this. Twelve sources take about five minutes, and a
+    # one-click shortcut that sits on a console for five minutes before
+    # showing anything is a shortcut nobody clicks twice. Postings do not turn
+    # over in an hour.
+    if args.if_older_than is not None:
+        last = store.last_run()
+        if last:
+            age = (datetime.now(timezone.utc)
+                   - datetime.fromisoformat(last["at"])).total_seconds() / 3600
+            if age < args.if_older_than:
+                print(f"Last run was {age:.1f}h ago — still current, skipping the crawl.")
+                print("Force one with: python scripts/fetch.py")
+                return
+
     started = time.time()
-    print(f"asking {companies.count()} boards plus 2 aggregators…")
+    print(f"asking {companies.count()} company boards plus 7 job-board APIs…")
     postings, per_source = collect(args.fresh)
     if not postings:
         raise SystemExit("nothing fetched — check the network, then --fresh")

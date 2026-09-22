@@ -6,9 +6,11 @@ REM YC tab opened saying "Nothing yet. Run scripts/fetch_yc.py" - which is a
 REM shortcut that does not shortcut anything. If a screen needs a command
 REM typed before it works, the launcher is unfinished.
 REM
-REM The YC pass is skipped when its stored directory is under a day old. YC
-REM batches move on a scale of weeks, so re-resolving 326 company boards every
-REM launch would cost two minutes to learn nothing.
+REM Both fetches are skipped when their stored data is still fresh - two hours
+REM for the job crawl, a day for the YC directory. Twelve sources take about
+REM five minutes, and a shortcut that sits on a console for five minutes before
+REM showing anything is a shortcut nobody clicks twice. Postings do not turn
+REM over in an hour and YC batches move on a scale of weeks.
 title job-radar
 cd /d "%~dp0"
 
@@ -29,7 +31,7 @@ echo ============================================================
 echo.
 echo [1/3] Crawling job boards...
 echo.
-"%PY%" scripts\fetch.py
+"%PY%" scripts\fetch.py --if-older-than 2
 if errorlevel 1 (
     echo.
     echo   Crawl failed. The dashboard will still open with the last stored run.
