@@ -135,3 +135,38 @@ def test_the_full_description_is_never_sent_to_the_browser(db):
     """It is up to 20 KB a row and nothing in the UI shows it."""
     store.save([make()], funnel(), db)
     assert "text" not in store.section("remote", path=db)[0]
+
+
+def test_one_employer_cannot_fill_the_screen(db):
+    """Anthropic repeats "we sponsor visas" in every posting, which is true
+    and which put 161 of 170 sponsorship rows under one name. A correct filter
+    producing an unreadable list is still a broken screen."""
+    postings = [make(company="Flood", title=f"Role {i}", score=0.9 - i / 100)
+                for i in range(12)]
+    postings.append(make(company="Other", title="One role", score=0.5))
+    store.save(postings, funnel(), db)
+
+    rows = store.section("remote", path=db)
+    from collections import Counter
+    per = Counter(r["company"] for r in rows)
+    assert per["Flood"] == store.PER_COMPANY
+    assert per["Other"] == 1
+
+
+def test_the_folded_rows_are_counted_not_hidden(db):
+    """A cap that silently drops rows is the same sin as a silent filter."""
+    postings = [make(company="Flood", title=f"Role {i}", score=0.9 - i / 100)
+                for i in range(12)]
+    store.save(postings, funnel(), db)
+    rows = store.section("remote", path=db)
+    assert rows[0]["more_at_company"] == 12 - store.PER_COMPANY
+    # Only the first row from a company carries the count, so the screen says
+    # it once rather than on every line.
+    assert [r["more_at_company"] for r in rows[1:]] == [0] * (len(rows) - 1)
+
+
+def test_nothing_is_deleted_by_the_cap(db):
+    postings = [make(company="Flood", title=f"Role {i}") for i in range(12)]
+    store.save(postings, funnel(), db)
+    everything = store.section("remote", per_company=99, path=db)
+    assert len(everything) == 12

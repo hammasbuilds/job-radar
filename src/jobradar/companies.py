@@ -14,27 +14,34 @@ from __future__ import annotations
 
 # provider -> slugs. The company name shown in the UI comes from the board
 # itself where the API provides it, so these are identifiers, not labels.
+# Every slug below was verified by `scripts/probe_companies.py --wide`, which
+# asked all of them and kept only the ones that returned at least one posting.
+#
+# The first hand-written version of this list had 67 entries and 42 returned
+# nothing — the companies were real, but they use a different ATS or a slug
+# nobody guessed. That is invisible during a run, because a dead board and a
+# board with no open roles both come back empty, so the crawl looked healthy
+# while fetching 40% less than it claimed.
+#
+# Probed 2026-09-22: 53 live boards, 8,287 postings.
 SEEDS: dict[str, tuple[str, ...]] = {
     "greenhouse": (
-        # UK / EU fintech and infrastructure
-        "monzo", "wise", "starlingbank", "gocardless", "checkout", "tide",
-        "revolut", "n26", "traderepublic", "moonpay", "form3",
-        # EU product and platform companies
-        "hellofresh", "getyourguide", "personio", "celonis", "sennder",
-        "contentful", "sumup", "zalando", "deliveryhero", "flixbus",
-        "bolt", "pleo", "templafy", "unity", "trustpilot", "zendesk",
-        # AI / ML weighted
-        "huggingface", "weightsandbiases", "scaleai", "cohere", "eleven-labs",
-        "synthesia", "poolside", "mistralai", "deepl", "aleph-alpha",
-        "graphcore", "speechmatics", "faculty", "quantexa", "peak",
-        # remote-first
-        "gitlab", "elastic", "grafanalabs", "hashicorp", "sourcegraph",
-        "docker", "canonical", "automattic", "doist", "remotecom",
+        # Large boards — most of the corpus comes from these
+        "databricks", "stripe", "anthropic", "datadog", "hellofresh",
+        "cloudflare", "elastic", "sumup", "canonical", "celonis",
+        "scaleai", "adyen", "gitlab", "remotecom", "graphcore",
+        "grafanalabs", "deliveroo", "oura",
+        # UK / EU fintech
+        "tide", "n26", "monzo", "wise", "gocardless", "raisin",
+        "solarisbank", "form3", "cleo", "traderepublic",
+        # EU product and platform
+        "jetbrains", "trustpilot", "neo4j", "relex", "getyourguide",
+        "peak", "catawiki", "commercetools", "algolia", "staffbase",
+        "typeform", "contentful", "speechmatics", "grover", "spryker",
     ),
     "lever": (
-        "spotify", "shopify", "palantir", "netflix", "mistral",
-        "veriff", "wolt", "swordhealth", "kry", "vinted",
-        "typeform", "factorial", "jobandtalent", "glovo", "cabify",
+        "gopuff", "palantir", "spotify", "qonto", "agicap",
+        "contentsquare", "swile", "jobandtalent", "matillion", "younited",
     ),
 }
 

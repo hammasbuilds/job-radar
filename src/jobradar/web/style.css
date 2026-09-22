@@ -126,3 +126,7 @@ main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
   h1 { font-size: 23px; }
   .row .top { gap: 7px; }
 }
+
+/* "+ 158 more at Anthropic, folded" — the count that keeps the per-company
+   cap honest instead of silently hiding rows. */
+.where.more { color: var(--accent); font-size: 12.5px; margin-top: 5px; }

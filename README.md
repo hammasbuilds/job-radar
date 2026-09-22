@@ -17,27 +17,39 @@ Private repository. See [DO-NOT-PUBLISH.md](DO-NOT-PUBLISH.md).
 ```
 $ python scripts/fetch.py
 
-asking 67 boards plus 2 aggregators…
-fetched 3,764 postings in 34s
-  greenhouse    3,086
-  lever           410
+asking 53 boards plus 2 aggregators…
+fetched 8,555 postings in 4s
+  greenhouse    6,929
+  lever         1,358
   arbeitnow       250
   remotive         18
 
 the funnel
-    3,764  fetched
-    2,474  after dedup                                (-1,290, 34.3% of input)
-    1,032  after no route in (country-locked)         (-1,442, 58.3% of input)
-      280  after onsite, no sponsorship               (-752, 30.4% of input)
-      193  after relocation offered, sponsorship unstated (-87, 3.5% of input)
-      109  after below fit threshold                  (-84, 3.4% of input)
-       27  after refuses sponsorship                  (-82, 3.3% of input)
-       11  after hybrid, no sponsorship               (-16, 0.6% of input)
-        2  in section: remote
-        9  in section: sponsorship
+    8,555  fetched
+    6,252  after dedup                                (-2,303, 26.9% of input)
+    3,075  after no route in (country-locked)         (-3,177, 50.8% of input)
+      902  after onsite, no sponsorship               (-2,173, 34.8% of input)
+      392  after below fit threshold                  (-510, 8.2% of input)
+      305  after relocation offered, sponsorship unstated (-87, 1.4% of input)
+      221  after refuses sponsorship                  (-84, 1.3% of input)
+      173  after hybrid, no sponsorship               (-48, 0.8% of input)
+        3  in section: remote
+      170  in section: sponsorship
 ```
 
-**3,764 → 11.** Every lead-generation tool quotes the first number. None publish the last.
+**8,555 → 173**, and **9 on screen** after the per-company cap below. Every
+lead-generation tool quotes the first number. None publish the last.
+
+### One employer must not fill the screen
+
+Of those 170 sponsorship rows, **161 were Anthropic** — it repeats *"we do
+sponsor visas"* in every posting. The filter is right and the list is useless:
+a correct filter producing an unreadable screen is still a broken screen.
+
+The view shows at most **three per company** and says how many it folded
+(*"+ 158 more at Anthropic, folded"*). Nothing is deleted — the rows stay in
+the table, and a cap that silently drops rows is the same sin as a silent
+filter.
 
 ## Two sections
 
@@ -57,7 +69,7 @@ Needs **Python 3.11+** and two packages. Everything else is standard library.
 pip install fastapi uvicorn
 python scripts/fetch.py               # crawl, filter, store
 python -m jobradar.api                # dashboard at http://127.0.0.1:8000
-python -m pytest                      # 61 tests
+python -m pytest                      # 64 tests
 
 python scripts/probe_companies.py --wide   # which company boards are real
 ```

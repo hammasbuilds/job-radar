@@ -151,20 +151,52 @@ def save(postings: list, funnel, path: Path | None = None) -> int:
     return new
 
 
-def section(name: str, limit: int = 100, path: Path | None = None) -> list[dict]:
+# One employer must not fill the screen. Anthropic repeats "we do sponsor
+# visas" in every posting, which is true and which put 161 of 170 sponsorship
+# rows under one name — a correct filter producing a useless list. The note is
+# specific that this is ten to thirty rows, never three hundred, so the view
+# shows the best few per company and says how many were folded away.
+PER_COMPANY = 3
+
+
+def section(name: str, limit: int = 100, per_company: int = PER_COMPANY,
+            path: Path | None = None) -> list[dict]:
+    """Best rows in a section, at most `per_company` from any one employer.
+
+    Nothing is deleted: the folded rows stay in the table and the count of
+    them rides along on the first row from that company, so the screen can
+    say "and 158 more at Anthropic" rather than silently hiding them.
+    """
     conn = connect(path)
     try:
         rows = conn.execute(
             """
-            SELECT p.*, a.state AS applied
-            FROM posting p LEFT JOIN application a ON a.posting_id = p.id
-            WHERE ',' || p.section || ',' LIKE '%,' || ? || ',%'
-            ORDER BY p.score DESC, p.first_seen DESC
+            WITH ranked AS (
+                SELECT p.*, a.state AS applied,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY p.company ORDER BY p.score DESC, p.first_seen DESC
+                       ) AS rank_in_company,
+                       COUNT(*) OVER (PARTITION BY p.company) AS at_company
+                FROM posting p LEFT JOIN application a ON a.posting_id = p.id
+                WHERE ',' || p.section || ',' LIKE '%,' || ? || ',%'
+            )
+            SELECT * FROM ranked
+            WHERE rank_in_company <= ?
+            ORDER BY score DESC, first_seen DESC
             LIMIT ?
             """,
-            (name, limit),
+            (name, per_company, limit),
         ).fetchall()
-        return [_row(r) for r in rows]
+        out = []
+        for row in rows:
+            item = _row(row)
+            item["more_at_company"] = (
+                item["at_company"] - per_company
+                if item["rank_in_company"] == 1 and item["at_company"] > per_company
+                else 0
+            )
+            out.append(item)
+        return out
     finally:
         conn.close()
 
@@ -178,14 +210,30 @@ def newest(limit: int = 40, path: Path | None = None) -> list[dict]:
             return []
         rows = conn.execute(
             """
-            SELECT p.*, a.state AS applied
-            FROM posting p LEFT JOIN application a ON a.posting_id = p.id
-            WHERE p.first_seen = ?
-            ORDER BY p.score DESC LIMIT ?
+            WITH ranked AS (
+                SELECT p.*, a.state AS applied,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY p.company ORDER BY p.score DESC
+                       ) AS rank_in_company,
+                       COUNT(*) OVER (PARTITION BY p.company) AS at_company
+                FROM posting p LEFT JOIN application a ON a.posting_id = p.id
+                WHERE p.first_seen = ?
+            )
+            SELECT * FROM ranked WHERE rank_in_company <= ?
+            ORDER BY score DESC LIMIT ?
             """,
-            (last, limit),
+            (last, PER_COMPANY, limit),
         ).fetchall()
-        return [_row(r) for r in rows]
+        out = []
+        for row in rows:
+            item = _row(row)
+            item["more_at_company"] = (
+                item["at_company"] - PER_COMPANY
+                if item["rank_in_company"] == 1 and item["at_company"] > PER_COMPANY
+                else 0
+            )
+            out.append(item)
+        return out
     finally:
         conn.close()
 

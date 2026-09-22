@@ -44,6 +44,14 @@ function row(p) {
 
   if (p.location) node.append(el("div", "where", p.location));
 
+  // One employer repeating "we sponsor visas" in every posting is true and
+  // useless: it put 161 of 170 rows under one name. The extras are folded
+  // rather than hidden, and the count says so.
+  if (p.more_at_company) {
+    node.append(el("div", "where more",
+      "+ " + p.more_at_company + " more open at " + p.company + ", folded"));
+  }
+
   // The evidence, quoted. This is the whole point of the row.
   const why = el("div", "why");
   if (p.reason) {
