@@ -1,0 +1,34 @@
+[project]
+name = "job-radar"
+version = "0.1.0"
+description = "A rejection engine with the reasons shown — European AI roles, filtered for someone applying from Pakistan"
+requires-python = ">=3.11"
+
+# Two dependencies, both only for serving the dashboard. The fetching, the
+# filtering, the dedup and the store are standard library: urllib, sqlite3, re.
+# A personal tool that needs a virtualenv rebuilt every six months to keep
+# working is a personal tool that stops being used.
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+job-radar = "jobradar.api:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+jobradar = ["web/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

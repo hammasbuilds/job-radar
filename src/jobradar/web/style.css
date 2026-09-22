@@ -1,0 +1,115 @@
+:root {
+  --bg: #0f1113;
+  --panel: #171a1d;
+  --line: #262b30;
+  --ink: #e6e8ea;
+  --dim: #8d959d;
+  --accent: #4da6c8;
+  --kill: #b4646a;
+  --ok: #6fae7c;
+  --warn: #c9a15c;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #fbfbfa; --panel: #fff; --line: #e3e3e0; --ink: #1b1d1f;
+    --dim: #6b7178; --accent: #2b7c9c; --kill: #96444b; --ok: #3f7d4d;
+    --warn: #8a6a2a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+header { padding: 26px 16px 8px; max-width: 980px; margin: 0 auto; }
+h1 { margin: 0; font-size: 27px; letter-spacing: -0.02em; font-weight: 640; }
+.tag { margin: 4px 0 0; color: var(--dim); font-size: 14px; font-style: italic; }
+
+nav {
+  display: flex; gap: 2px; flex-wrap: wrap;
+  max-width: 980px; margin: 18px auto 0; padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+nav button {
+  background: none; border: 0; color: var(--dim);
+  padding: 9px 13px; font: inherit; font-size: 14px; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+nav button:hover { color: var(--ink); }
+nav button.on { color: var(--ink); border-bottom-color: var(--accent); }
+
+main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
+.tab { display: none; }
+.tab.on { display: block; }
+.lead { color: var(--dim); font-size: 14px; margin: 0 0 16px; max-width: 62ch; }
+
+.row {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px 15px;
+  margin-bottom: 9px;
+}
+.row .top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.row .score {
+  font-variant-numeric: tabular-nums; font-weight: 660;
+  color: var(--accent); min-width: 2.6em;
+}
+.row .title { font-weight: 600; }
+.row .co { color: var(--dim); }
+.row .where { color: var(--dim); font-size: 13px; margin-top: 3px; }
+
+/* The quoted reason. A bare number is not actionable; this is what makes the
+   row readable in two seconds. */
+.row .why {
+  margin-top: 8px; padding-left: 10px;
+  border-left: 2px solid var(--line);
+  color: var(--dim); font-size: 13.5px;
+}
+.row .why b { color: var(--ink); font-weight: 560; }
+
+.badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px; }
+.badge {
+  font-size: 11.5px; padding: 2px 7px; border-radius: 4px;
+  border: 1px solid var(--line); color: var(--dim);
+  text-transform: lowercase; letter-spacing: 0.02em;
+}
+.badge.good { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+.badge.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+.badge.bad  { color: var(--kill); border-color: color-mix(in srgb, var(--kill) 40%, var(--line)); }
+
+.row a.apply {
+  color: var(--accent); text-decoration: none; font-size: 13.5px; font-weight: 560;
+}
+.row a.apply:hover { text-decoration: underline; }
+.spacer { flex: 1; }
+
+#reasons { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+#reasons button {
+  background: var(--panel); border: 1px solid var(--line); color: var(--dim);
+  border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px;
+  cursor: pointer;
+}
+#reasons button.on { color: var(--ink); border-color: var(--accent); }
+#reasons button b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+#funnel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.7;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.empty { color: var(--dim); padding: 28px 2px; font-style: italic; }
+
+@media (max-width: 620px) {
+  header { padding-top: 18px; }
+  h1 { font-size: 23px; }
+  .row .top { gap: 7px; }
+}

@@ -1,0 +1,16 @@
+# The fetched corpus and everything derived from it. All rebuildable by
+# `python scripts/fetch.py`, and none of it belongs in a repository:
+# it is other people's job postings, it goes stale within days, and the
+# database holds a personal application pipeline.
+data/cache/
+data/radar.sqlite3
+data/*.jsonl
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/

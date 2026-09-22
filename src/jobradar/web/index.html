@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>job-radar</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>job&#8209;radar</h1>
+  <p class="tag">Not a search engine. A rejection engine with the reasons shown.</p>
+</header>
+
+<nav id="tabs">
+  <button data-tab="today" class="on">Today</button>
+  <button data-tab="sponsorship">Sponsorship</button>
+  <button data-tab="remote">Remote</button>
+  <button data-tab="killed">Killed</button>
+  <button data-tab="market">Funnel</button>
+</nav>
+
+<main>
+  <section id="today" class="tab on"><div class="rows"></div></section>
+
+  <section id="sponsorship" class="tab">
+    <p class="lead">They will sponsor a visa, so relocation is the route.
+      Only explicit offers appear here &mdash; silence does not qualify.</p>
+    <div class="rows"></div>
+  </section>
+
+  <section id="remote" class="tab">
+    <p class="lead">You stay where you are. Either the role is open worldwide,
+      or they will engage a contractor, which needs no work permit.</p>
+    <div class="rows"></div>
+  </section>
+
+  <section id="killed" class="tab">
+    <p class="lead">Every rejection and the phrase that caused it. Silent drops
+      destroy confidence; a visible reason does not.</p>
+    <div id="reasons"></div>
+    <div class="rows"></div>
+  </section>
+
+  <section id="market" class="tab">
+    <p class="lead">Every lead-generation tool quotes the first number.
+      None publish the last.</p>
+    <pre id="funnel"></pre>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
