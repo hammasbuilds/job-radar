@@ -59,7 +59,17 @@ CITY_COUNTRY = {
     "tel aviv": "israel", "bangalore": "india", "bengaluru": "india",
     "mumbai": "india", "delhi": "india", "hyderabad": "india", "pune": "india",
     "singapore": "singapore", "sydney": "australia", "melbourne": "australia",
-    "tokyo": "japan", "dubai": "uae", "são paulo": "brazil", "sao paulo": "brazil",
+    "tokyo": "japan", "são paulo": "brazil", "sao paulo": "brazil",
+    # Gulf
+    "dubai": "uae", "abu dhabi": "uae", "sharjah": "uae", "masdar city": "uae",
+    "riyadh": "saudi arabia", "jeddah": "saudi arabia", "dammam": "saudi arabia",
+    "neom": "saudi arabia", "khobar": "saudi arabia", "dhahran": "saudi arabia",
+    "doha": "qatar", "kuwait city": "kuwait", "manama": "bahrain",
+    "muscat": "oman",
+    # Pakistan
+    "lahore": "pakistan", "karachi": "pakistan", "islamabad": "pakistan",
+    "rawalpindi": "pakistan", "faisalabad": "pakistan", "peshawar": "pakistan",
+    "multan": "pakistan", "quetta": "pakistan", "sialkot": "pakistan",
 }
 
 COUNTRIES = {
@@ -75,9 +85,71 @@ COUNTRIES = {
     "uruguay", "costa rica", "india", "pakistan", "bangladesh", "sri lanka",
     "china", "japan", "south korea", "singapore", "malaysia", "indonesia",
     "philippines", "vietnam", "thailand", "australia", "new zealand",
-    "israel", "uae", "united arab emirates", "saudi arabia", "egypt",
+    "israel", "uae", "united arab emirates", "saudi arabia", "ksa", "qatar",
+    "kuwait", "bahrain", "oman", "jordan", "lebanon", "egypt",
     "south africa", "nigeria", "kenya", "morocco", "ghana",
 }
+
+# --- the regions the dashboard is organised into ----------------------------
+#
+# These decide which tab a posting lands in, so they are kept as explicit sets
+# rather than derived from anything: a company in Dubai and a company in Berlin
+# are different propositions and the difference should not depend on a guess.
+
+GULF = {"uae", "united arab emirates", "saudi arabia", "ksa", "qatar",
+        "kuwait", "bahrain", "oman"}
+
+EUROPE = {
+    "uk", "united kingdom", "great britain", "england", "scotland", "wales",
+    "ireland", "germany", "deutschland", "france", "spain", "portugal",
+    "netherlands", "the netherlands", "holland", "belgium", "luxembourg",
+    "sweden", "denmark", "norway", "finland", "iceland", "poland", "czechia",
+    "czech republic", "slovakia", "austria", "switzerland", "italy", "greece",
+    "romania", "bulgaria", "hungary", "croatia", "slovenia", "serbia",
+    "estonia", "latvia", "lithuania", "ukraine", "cyprus", "malta",
+}
+
+PAKISTAN = {"pakistan"}
+
+# Region names used as dashboard sections.
+R_GULF, R_EUROPE, R_PAKISTAN, R_OTHER = "gulf", "europe", "pakistan", "other"
+
+_REGION_WORDS = {
+    "gcc": R_GULF, "middle east": R_GULF, "mena": R_GULF,
+    "eu": R_EUROPE, "eea": R_EUROPE, "europe": R_EUROPE,
+    "european union": R_EUROPE, "european economic area": R_EUROPE,
+    "emea": R_EUROPE, "nordics": R_EUROPE, "benelux": R_EUROPE, "dach": R_EUROPE,
+    "uk & eu": R_EUROPE,
+}
+
+
+def regions_of(location: str) -> set[str]:
+    """Which dashboard regions a location touches. May be empty, may be several.
+
+    A posting listing "Dubai, London" belongs in both the Gulf and the Europe
+    tab: it is genuinely two opportunities, and picking one would hide the
+    other. EMEA counts as Europe only — it nominally covers the Gulf too, but
+    a company writing EMEA almost always means a European office.
+    """
+    found: set[str] = set()
+    for token in _tokens(location):
+        if token in _FILLER:
+            continue
+        if token in _REGION_WORDS:
+            found.add(_REGION_WORDS[token])
+            continue
+        country = token if token in COUNTRIES else CITY_COUNTRY.get(token)
+        if not country:
+            continue
+        if country in GULF:
+            found.add(R_GULF)
+        elif country in EUROPE:
+            found.add(R_EUROPE)
+        elif country in PAKISTAN:
+            found.add(R_PAKISTAN)
+        else:
+            found.add(R_OTHER)
+    return found
 
 REGIONS = {
     "eu", "eea", "europe", "european union", "european economic area",

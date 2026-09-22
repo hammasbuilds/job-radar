@@ -21,10 +21,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .filters import authorisation, employment, fit, remote, timezone
+from .filters import authorisation, employment, fit, places, remote, timezone
 
 SPONSORSHIP = "sponsorship"
 REMOTE = "remote"
+
+# Geographic sections, alongside the two route sections above. A posting can
+# be in several: a Dubai-and-London role is genuinely two opportunities, and
+# a remote EU role that sponsors appears under europe, remote and sponsorship.
+#
+# These are kept even when no route in exists, because "who is hiring AI in
+# the Gulf" is a useful question on its own — you may know somebody, or the
+# company may answer an email. A posting with a region but no route is marked
+# rather than killed.
+GULF = places.R_GULF
+EUROPE = places.R_EUROPE
+PAKISTAN = places.R_PAKISTAN
+
+REGIONS = (GULF, EUROPE, PAKISTAN)
+SECTIONS = (SPONSORSHIP, REMOTE, *REGIONS)
 
 # Below this the posting is not worth a line in a list a human reads daily.
 MIN_SCORE = 0.30
@@ -88,8 +103,11 @@ def judge(posting) -> dict:
     form, form_why = employment.classify(posting)
     zone, zone_why = timezone.classify(posting)
     score, fit_why = fit.score(posting)
+    where = places.regions_of(posting.location) or places.regions_of(posting.title)
 
     return {
+        "regions": sorted(where),
+        "role": fit.role_match(posting.title) or "",
         "scope": scope, "scope_why": scope_why,
         "auth": auth, "auth_why": auth_why,
         "employment": form, "employment_why": form_why,
@@ -130,6 +148,12 @@ def sections_for(verdict: dict) -> list[str]:
         # that said "we do not sponsor" straight onto the dashboard.
         if scope == remote.GLOBAL or contractor or verdict["auth"] == authorisation.SPONSORS:
             out.append(REMOTE)
+
+    # Geographic sections are about *where the work is*, not about whether a
+    # route in exists. A Gulf role that will not sponsor still belongs in the
+    # Gulf tab: the question that tab answers is "who is hiring AI there", and
+    # a route can be made by an email that a filter cannot see.
+    out += [r for r in verdict.get("regions", []) if r in REGIONS]
     return out
 
 
@@ -149,21 +173,42 @@ def run(postings: list, min_score: float = MIN_SCORE) -> tuple[list, Funnel]:
         posting.score = verdict["score"]
         posting.evidence = verdict["fit_why"]
 
-        # Order matters only for the kill-reason attribution: a posting is
-        # counted against the first stage that rejected it, so the funnel
-        # reads as a funnel rather than as overlapping sets.
-        if verdict["scope"] == remote.ONSITE and verdict["auth"] != authorisation.SPONSORS:
-            funnel.kill(posting, "onsite, no sponsorship")
+        # The title must be one of the target roles. This is a harder rule
+        # than a score threshold and it is the right one: the roles were
+        # chosen deliberately, and a score lets a "Senior Customer Engineer,
+        # Saudi Arabia" into the Gulf tab on body vocabulary alone. Matching
+        # the words of a field is not the same as being a job in it.
+        #
+        # It is by far the largest filter in the funnel, which is expected —
+        # most of what a company advertises is not an AI role.
+        if not verdict["role"]:
+            funnel.kill(posting, "not one of the target roles")
             continue
-        if verdict["scope"] == remote.HYBRID and verdict["auth"] != authorisation.SPONSORS:
-            funnel.kill(posting, "hybrid, no sponsorship")
+        if verdict["score"] < min_score:
+            funnel.kill(posting, "below fit threshold")
             continue
-        if verdict["auth"] == authorisation.REFUSES and verdict["scope"] != remote.GLOBAL:
-            if verdict["employment"] not in (employment.CONTRACTOR, employment.EITHER):
-                funnel.kill(posting, "refuses sponsorship")
-                continue
 
         where = sections_for(verdict)
+        in_region = any(r in REGIONS for r in where)
+
+        # The route kills below decide whether *you* can take the job. They are
+        # skipped for a posting that sits in a geographic section, because that
+        # tab answers a different question — who is hiring AI there — and an
+        # onsite Gulf role is a true answer to it even when no filter can see a
+        # way in. It still shows its scope and sponsorship badges, so the
+        # difference is visible rather than assumed.
+        if not in_region:
+            if verdict["scope"] == remote.ONSITE and verdict["auth"] != authorisation.SPONSORS:
+                funnel.kill(posting, "onsite, no sponsorship")
+                continue
+            if verdict["scope"] == remote.HYBRID and verdict["auth"] != authorisation.SPONSORS:
+                funnel.kill(posting, "hybrid, no sponsorship")
+                continue
+            if verdict["auth"] == authorisation.REFUSES and verdict["scope"] != remote.GLOBAL:
+                if verdict["employment"] not in (employment.CONTRACTOR, employment.EITHER):
+                    funnel.kill(posting, "refuses sponsorship")
+                    continue
+
         if not where:
             # A relocation offer without a sponsorship statement gets its own
             # reason rather than being swept into the country-locked pile.
@@ -176,9 +221,6 @@ def run(postings: list, min_score: float = MIN_SCORE) -> tuple[list, Funnel]:
                 funnel.kill(posting, "relocation offered, sponsorship unstated")
             else:
                 funnel.kill(posting, "no route in (country-locked)")
-            continue
-        if verdict["score"] < min_score:
-            funnel.kill(posting, "below fit threshold")
             continue
 
         posting.section = ",".join(where)

@@ -38,10 +38,19 @@ SEEDS: dict[str, tuple[str, ...]] = {
         "jetbrains", "trustpilot", "neo4j", "relex", "getyourguide",
         "peak", "catawiki", "commercetools", "algolia", "staffbase",
         "typeform", "contentful", "speechmatics", "grover", "spryker",
+        # Gulf. 26 Gulf companies were probed and three have a readable board:
+        # the region's employers overwhelmingly use other ATS providers, so
+        # most Gulf roles in this tool arrive from European and global
+        # companies advertising a Dubai or Riyadh office rather than from
+        # Gulf-headquartered firms. That is a limit of the sources, and the
+        # Gulf tab says so rather than looking empty for no reason.
+        "tamara", "careem", "hala",
     ),
     "lever": (
         "gopuff", "palantir", "spotify", "qonto", "agicap",
         "contentsquare", "swile", "jobandtalent", "matillion", "younited",
+        # Pakistan. 16 probed, one readable board.
+        "educative",
     ),
 }
 

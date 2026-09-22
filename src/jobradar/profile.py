@@ -20,8 +20,60 @@ from __future__ import annotations
 # against. Change this. Nothing else in the project depends on it.
 YEARS = 3
 
+# The roles actually being looked for. A posting whose *title* is one of these
+# is the thing; everything else is a stack match that happens to mention ML.
+#
+# Kept separate from `core` below and weighted far more heavily, because the
+# first version scored a "Senior Marketing Data Analyst" at 0.59 on the words
+# "llm", "agent" and "benchmark" appearing somewhere in its body. Matching the
+# vocabulary of a field is not the same as being a job in it.
+TARGET_ROLES = [
+    "ai engineer",
+    "ml engineer",
+    "dl engineer",
+    "ml/dl engineer",
+    "machine learning engineer",
+    "deep learning engineer",
+    "generative ai engineer",
+    "gen ai engineer",
+    "genai engineer",
+    "computer vision engineer",
+    "llm engineer",
+    "llm evaluation engineer",
+    "agentic ai engineer",
+    "agentic engineer",
+    "ai agent engineer",
+    "agent engineer",
+    # Research titles. "All researchers" was asked for explicitly, so these
+    # are first-class targets rather than near-misses — in AI the research
+    # title is often the same job as the engineering one.
+    "research scientist",
+    "ai researcher",
+    "ml researcher",
+    "machine learning researcher",
+    "research fellow",
+    "postdoctoral researcher",
+    "postdoc",
+    "researcher",
+    # The same jobs under the titles companies actually post them as.
+    "machine learning scientist",
+    "applied scientist",
+    "research engineer",
+    "applied ai engineer",
+    "ai/ml engineer",
+    "ml research engineer",
+    "vision engineer",
+    "nlp engineer",
+    "mlops engineer",
+    "ai research engineer",
+    "founding ai engineer",
+    "founding engineer, ai",
+    "member of technical staff",
+]
+
 PROFILE = {
     "years": YEARS,
+    "roles": TARGET_ROLES,
     # The work itself — drawn from the portfolio's actual centre of gravity:
     # classical CV (43 projects), NLP (23), ML (20), agents (11), RAG (8).
     "core": [

@@ -180,10 +180,105 @@ async function loadPipeline() {
        "Nothing applied to yet. Mark a row on Today or in a section.");
 }
 
+// --- YC: company-first, so the row is a company and the jobs sit under it ---
+
+let ycBucket = null;
+
+function company(c) {
+  const node = el("div", "row");
+  const top = el("div", "top");
+  top.append(el("span", "score", String(c.job_count)));
+  top.append(el("span", "title", c.name));
+  if (c.batch) top.append(el("span", "co", c.batch));
+  top.append(el("span", "spacer"));
+
+  const links = [
+    c.website && ["website", c.website],
+    c.yc_url && ["YC", c.yc_url],
+    // Derived from the slug and never verified, because this project does not
+    // request LinkedIn. Labelled so a wrong guess is obvious.
+    c.linkedin && ["LinkedIn?", c.linkedin],
+    c.linkedin_search && ["search", c.linkedin_search],
+  ].filter(Boolean);
+  links.forEach(([label, href]) => {
+    const a = el("a", "apply", label);
+    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    top.append(a);
+  });
+  node.append(top);
+
+  if (c.one_liner) node.append(el("div", "where", c.one_liner));
+  const facts = [c.age_label, c.location, c.industry,
+                 c.team_size ? c.team_size + " people" : null]
+    .filter(Boolean).join("  ·  ");
+  node.append(el("div", "where", facts));
+
+  if (c.jobs && c.jobs.length) {
+    const list = el("div", "why");
+    c.jobs.slice(0, 8).forEach((j) => {
+      const line = el("div");
+      const a = el("a", "apply", j.title);
+      a.href = j.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      line.append(a);
+      if (j.role_match) line.append(el("span", "badge good", j.role_match));
+      if (j.location) line.append(document.createTextNode("  " + j.location));
+      list.append(line);
+    });
+    if (c.jobs.length > 8) {
+      list.append(el("div", null, "+ " + (c.jobs.length - 8) + " more"));
+    }
+    node.append(list);
+  } else {
+    node.append(el("div", "why",
+      "No readable board — funded, hiring, and reachable by email."));
+  }
+
+  const badges = el("div", "badges");
+  if (c.is_ai) badges.append(badge("ai", "good"));
+  if (c.age_bucket) badges.append(badge(c.age_bucket, "good"));
+  (c.tags || []).slice(0, 5).forEach((t) => badges.append(badge(t, "")));
+  node.append(badges);
+  return node;
+}
+
+async function loadYC() {
+  const url = "/api/yc" + (ycBucket ? "?bucket=" + ycBucket : "");
+  const data = await (await fetch(url)).json();
+  const counts = data.counts || {};
+
+  const bar = $("ycbuckets");
+  bar.className = "";
+  bar.id = "ycbuckets";
+  bar.innerHTML = "";
+  const mk = (key, label, n) => {
+    const b = el("button", ycBucket === key ? "on" : "");
+    b.append(document.createTextNode(label + " "), el("b", null, String(n ?? 0)));
+    b.onclick = () => { ycBucket = key; loadYC(); };
+    return b;
+  };
+  bar.append(mk(null, "all", counts.companies));
+  const buckets = counts.buckets || {};
+  bar.append(mk("0-3m", "launched < 3 months", buckets["0-3m"]));
+  bar.append(mk("3-6m", "3–6 months", buckets["3-6m"]));
+  bar.append(mk("6-12m", "6–12 months", buckets["6-12m"]));
+
+  const rows = $("yc").querySelector(".rows");
+  rows.innerHTML = "";
+  if (!data.companies || !data.companies.length) {
+    rows.append(el("div", "empty", "Nothing yet. Run scripts/fetch_yc.py."));
+    return;
+  }
+  data.companies.forEach((c) => rows.append(company(c)));
+}
+
 const LOADERS = {
   today: loadToday,
   sponsorship: () => loadSection("sponsorship"),
   remote: () => loadSection("remote"),
+  europe: () => loadSection("europe"),
+  gulf: () => loadSection("gulf"),
+  pakistan: () => loadSection("pakistan"),
+  yc: loadYC,
   killed: loadKilled,
   pipeline: loadPipeline,
   market: loadMarket,

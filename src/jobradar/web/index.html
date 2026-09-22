@@ -16,6 +16,10 @@
   <button data-tab="today" class="on">Today</button>
   <button data-tab="sponsorship">Sponsorship</button>
   <button data-tab="remote">Remote</button>
+  <button data-tab="europe">Europe</button>
+  <button data-tab="gulf">Gulf</button>
+  <button data-tab="pakistan">Pakistan</button>
+  <button data-tab="yc">YC</button>
   <button data-tab="killed">Killed</button>
   <button data-tab="pipeline">Pipeline</button>
   <button data-tab="market">Funnel</button>
@@ -33,6 +37,38 @@
   <section id="remote" class="tab">
     <p class="lead">You stay where you are. Either the role is open worldwide,
       or they will engage a contractor, which needs no work permit.</p>
+    <div class="rows"></div>
+  </section>
+
+  <section id="europe" class="tab">
+    <p class="lead">Where the work is, not whether there is a route in &mdash;
+      an onsite role still appears, with its scope and sponsorship badges
+      showing.</p>
+    <div class="rows"></div>
+  </section>
+
+  <section id="gulf" class="tab">
+    <p class="lead">UAE, Saudi, Qatar, Kuwait, Bahrain, Oman. <b>Coverage here is
+      thin and the reason is the sources:</b> 26 Gulf employers were probed and
+      three have a readable board &mdash; the region mostly uses ATS providers
+      this tool does not read. Most Gulf roles found are European and global
+      companies advertising a Dubai or Riyadh office.</p>
+    <div class="rows"></div>
+  </section>
+
+  <section id="pakistan" class="tab">
+    <p class="lead">Same limitation, harder. 16 Pakistani employers probed, one
+      readable board. A local job board would be the right source and none of
+      them publish an API.</p>
+    <div class="rows"></div>
+  </section>
+
+  <section id="yc" class="tab">
+    <p class="lead">YC-backed, funded and hiring. <b>This section is
+      company-first:</b> every open role is listed and the job description is
+      not filtered at all &mdash; the signal is the company, not the posting.
+      LinkedIn links are derived from the company slug and never fetched.</p>
+    <div id="ycbuckets"></div>
     <div class="rows"></div>
   </section>
 

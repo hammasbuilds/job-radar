@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import store
+from . import pipeline, store
 
 WEB = Path(__file__).resolve().parent / "web"
 
@@ -50,9 +50,21 @@ def today() -> JSONResponse:
 
 @app.get("/api/section/{name}")
 def section(name: str) -> JSONResponse:
-    if name not in ("sponsorship", "remote"):
+    if name not in pipeline.SECTIONS:
         return JSONResponse({"error": "unknown section"}, status_code=404)
-    return JSONResponse({"postings": store.section(name, limit=200)})
+    return JSONResponse({
+        "postings": store.section(name, limit=200),
+        "total": len(store.section(name, per_company=999, limit=999)),
+    })
+
+
+@app.get("/api/yc")
+def yc(bucket: str | None = None, ai_only: bool = False) -> JSONResponse:
+    """YC companies. Company-first: every open role, no description filter."""
+    return JSONResponse({
+        "companies": store.yc_companies(bucket=bucket, ai_only=ai_only),
+        "counts": store.yc_counts(),
+    })
 
 
 @app.get("/api/killed")

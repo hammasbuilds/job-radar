@@ -61,6 +61,45 @@ CREATE TABLE IF NOT EXISTS killed (
 );
 CREATE INDEX IF NOT EXISTS killed_reason ON killed(reason);
 
+-- YC companies. This section is company-first rather than posting-first: the
+-- signal is "YC-backed, funded, hiring", so every open role is listed and the
+-- job description is not filtered at all. A company with no readable board is
+-- still kept, because "funded, hiring, reachable by email" is worth knowing.
+CREATE TABLE IF NOT EXISTS yc_company (
+    slug        TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    batch       TEXT,
+    website     TEXT,
+    yc_url      TEXT,
+    linkedin    TEXT,
+    linkedin_search TEXT,
+    one_liner   TEXT,
+    industry    TEXT,
+    team_size   INTEGER,
+    location    TEXT,
+    tags        TEXT,
+    is_ai       INTEGER NOT NULL DEFAULT 0,
+    launched_at INTEGER,
+    age_days    INTEGER,
+    age_bucket  TEXT,
+    age_label   TEXT,
+    job_count   INTEGER NOT NULL DEFAULT 0,
+    at          TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS yc_bucket ON yc_company(age_bucket);
+
+CREATE TABLE IF NOT EXISTS yc_job (
+    id         TEXT PRIMARY KEY,
+    slug       TEXT NOT NULL,
+    title      TEXT NOT NULL,
+    location   TEXT,
+    url        TEXT NOT NULL,
+    posted     TEXT,
+    role_match TEXT,
+    at         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS yc_job_slug ON yc_job(slug);
+
 CREATE TABLE IF NOT EXISTS run (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     at        TEXT NOT NULL,
@@ -291,6 +330,110 @@ def pipeline(path: Path | None = None) -> list[dict]:
             """
         ).fetchall()
         return [_row(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def save_yc(companies: list, path: Path | None = None) -> int:
+    """Replace the YC directory. Returns how many companies were written."""
+    conn = connect(path)
+    now = _now()
+    try:
+        with conn:
+            conn.execute("DELETE FROM yc_company")
+            conn.execute("DELETE FROM yc_job")
+            for c in companies:
+                conn.execute(
+                    """INSERT OR REPLACE INTO yc_company
+                       (slug,name,batch,website,yc_url,linkedin,linkedin_search,
+                        one_liner,industry,team_size,location,tags,is_ai,
+                        launched_at,age_days,age_bucket,age_label,job_count,at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (c.slug, c.name, c.batch, c.website, c.yc_url,
+                     c.linkedin_guess, c.linkedin_search, c.one_liner,
+                     c.industry, c.team_size, c.location, json.dumps(list(c.tags)),
+                     int(c.is_ai), c.launched_at, c.age_days, c.age_bucket,
+                     c.age_label, len(c.jobs), now),
+                )
+                for job in c.jobs:
+                    from .filters.fit import role_match
+
+                    conn.execute(
+                        """INSERT OR REPLACE INTO yc_job
+                           (id,slug,title,location,url,posted,role_match,at)
+                           VALUES (?,?,?,?,?,?,?,?)""",
+                        (job.key, c.slug, job.title, job.location, job.url,
+                         job.posted.isoformat() if job.posted else None,
+                         role_match(job.title) or "", now),
+                    )
+    finally:
+        conn.close()
+    return len(companies)
+
+
+def yc_companies(bucket: str | None = None, ai_only: bool = False,
+                 hiring_only: bool = False, limit: int = 400,
+                 path: Path | None = None) -> list[dict]:
+    """YC companies with their jobs attached.
+
+    `bucket` selects a new-startup section ("0-3m", "3-6m", "6-12m"); omitted,
+    it returns everything, newest first.
+    """
+    conn = connect(path)
+    try:
+        where, args = [], []
+        if bucket:
+            where.append("age_bucket = ?")
+            args.append(bucket)
+        if ai_only:
+            where.append("is_ai = 1")
+        if hiring_only:
+            where.append("job_count > 0")
+        clause = ("WHERE " + " AND ".join(where)) if where else ""
+        rows = conn.execute(
+            f"""SELECT * FROM yc_company {clause}
+                ORDER BY (age_days IS NULL), age_days ASC, job_count DESC
+                LIMIT ?""",
+            (*args, limit),
+        ).fetchall()
+
+        out = []
+        for row in rows:
+            item = dict(row)
+            item["tags"] = json.loads(item["tags"] or "[]")
+            item["jobs"] = [
+                dict(j) for j in conn.execute(
+                    """SELECT title, location, url, posted, role_match
+                       FROM yc_job WHERE slug = ?
+                       ORDER BY (role_match = '') ASC, posted DESC""",
+                    (item["slug"],),
+                ).fetchall()
+            ]
+            out.append(item)
+        return out
+    finally:
+        conn.close()
+
+
+def yc_counts(path: Path | None = None) -> dict:
+    conn = connect(path)
+    try:
+        row = conn.execute(
+            """SELECT COUNT(*) AS companies,
+                      SUM(job_count) AS jobs,
+                      SUM(is_ai) AS ai,
+                      SUM(job_count > 0) AS with_board
+               FROM yc_company"""
+        ).fetchone()
+        buckets = {
+            r["age_bucket"]: r["n"] for r in conn.execute(
+                """SELECT age_bucket, COUNT(*) AS n FROM yc_company
+                   WHERE age_bucket != '' GROUP BY age_bucket"""
+            ).fetchall()
+        }
+        out = dict(row)
+        out["buckets"] = buckets
+        return out
     finally:
         conn.close()
 

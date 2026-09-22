@@ -45,6 +45,24 @@ _TOO_SENIOR = re.compile(
 )
 
 
+def role_match(title: str) -> str | None:
+    """The target role this title *is*, if any.
+
+    Matched against the title alone and on a word boundary. A body that says
+    "you will work with our ML engineers" is not an ML engineer posting, and
+    an earlier version scored a Senior Marketing Data Analyst at 0.59 by
+    counting field vocabulary wherever it appeared.
+    """
+    low = f" {re.sub(r'[^a-z0-9/+ ]+', ' ', title.lower())} "
+    low = re.sub(r"\s+", " ", low)
+    best = None
+    for role in PROFILE["roles"]:
+        if f" {role} " in low or low.strip().endswith(role):
+            if best is None or len(role) > len(best):
+                best = role
+    return best
+
+
 def score(posting) -> tuple[float, str]:
     """0.0–1.0, with one sentence of evidence.
 
@@ -55,6 +73,14 @@ def score(posting) -> tuple[float, str]:
     text = posting.haystack
     bits: list[str] = []
     total = 0.0
+
+    # The title carries most of the signal. A posting that *is* one of the
+    # target roles starts more than half way; one that merely uses the
+    # vocabulary has to earn every point from the body.
+    role = role_match(posting.title)
+    if role:
+        total += 0.55
+        bits.append(f"role: {role}")
 
     core = _terms_present(text, PROFILE["core"])
     if core:
@@ -71,12 +97,20 @@ def score(posting) -> tuple[float, str]:
         total += min(0.15, 0.04 * len(tools))
         bits.append("tools: " + ", ".join(tools[:4]))
 
-    # Title is worth more than body: a match in the title is what the role IS,
-    # a match in the body may be one line of a tech-stack list.
-    title = _terms_present(posting.title.lower(), PROFILE["core"] + PROFILE["domains"])
-    if title:
-        total += 0.15
-        bits.append("in title: " + ", ".join(title[:3]))
+    # A title that is not one of the target roles but still names the field —
+    # "Data Scientist, Vision" — is worth something, just much less.
+    if not role:
+        title = _terms_present(posting.title.lower(),
+                               PROFILE["core"] + PROFILE["domains"])
+        if title:
+            total += 0.12
+            bits.append("in title: " + ", ".join(title[:3]))
+        else:
+            # No target role and nothing from the field in the title. Whatever
+            # the body says, this is not one of the seven roles being looked
+            # for, and it should not outrank one that is.
+            total -= 0.20
+            bits.append("title is not a target role")
 
     years = _YEARS.search(text)
     if years:
