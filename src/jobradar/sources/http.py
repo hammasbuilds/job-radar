@@ -47,7 +47,19 @@ def _slot(url: str) -> Path:
     return CACHE / f"{hashlib.blake2b(url.encode(), digest_size=10).hexdigest()}.json.gz"
 
 
-def get_json(url: str, *, max_age: float = 6 * 3600, cache: bool = True):
+def get_text(url: str, *, max_age: float = 6 * 3600, cache: bool = True) -> str | None:
+    """The same fetch, for a source that is not JSON.
+
+    Personio publishes XML. Rather than give that one provider its own
+    retry, timeout and cache, it shares this module's and the JSON layer is
+    written on top of it.
+    """
+    payload = _fetch(url, max_age=max_age, cache=cache, parse=False)
+    return payload
+
+
+def get_json(url: str, *, max_age: float = 6 * 3600, cache: bool = True,
+             method: str = "GET", body: bytes | None = None):
     """Fetch and parse JSON, from cache when it is fresh enough.
 
     `max_age` is in seconds. A 404 or an empty board is a legitimate answer
@@ -55,10 +67,20 @@ def get_json(url: str, *, max_age: float = 6 * 3600, cache: bool = True):
     list of a few hundred ATS slugs will always contain some that have gone
     away, and one dead slug must not end the run.
     """
-    slot = _slot(url)
+    return _fetch(url, max_age=max_age, cache=cache, parse=True,
+                  method=method, body=body)
+
+
+def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
+           method: str = "GET", body: bytes | None = None):
+    # A POST is cached under a different key from a GET of the same URL.
+    # Workable's listing is a POST with an empty body; without this it would
+    # read a GET's cached failure and return nothing forever.
+    slot = _slot(f"{method}:{url}:{(body or b'').decode('utf-8', 'replace')}")
     if cache and slot.exists() and time.time() - slot.stat().st_mtime < max_age:
         with gzip.open(slot, "rt", encoding="utf-8") as handle:
-            return json.load(handle)
+            raw = handle.read()
+        return json.loads(raw) if parse else raw
 
     # A seed list is hand-written and will contain a slug with a space or an
     # accent in it. urllib raises InvalidURL for those, which is not an
@@ -70,13 +92,19 @@ def get_json(url: str, *, max_age: float = 6 * 3600, cache: bool = True):
     last: Exception | None = None
     for attempt in range(RETRIES):
         try:
-            request = urllib.request.Request(url, headers={"User-Agent": UA})
+            headers = {"User-Agent": UA}
+            if body is not None:
+                headers["Content-Type"] = "application/json"
+            request = urllib.request.Request(
+                url, headers=headers, data=body, method=method
+            )
             with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-                payload = json.loads(response.read().decode("utf-8", "replace"))
+                text = response.read().decode("utf-8", "replace")
+            payload = json.loads(text) if parse else text
             if cache:
                 CACHE.mkdir(parents=True, exist_ok=True)
                 with gzip.open(slot, "wt", encoding="utf-8") as handle:
-                    json.dump(payload, handle)
+                    handle.write(text)
             return payload
         except urllib.error.HTTPError as exc:
             # 404 means this company has no board here. Not an error.

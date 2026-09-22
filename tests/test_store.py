@@ -190,3 +190,35 @@ def test_every_declared_section_has_a_working_endpoint():
     assert api.yc().status_code == 200
     assert api.killed().status_code == 200
     assert api.market().status_code == 200
+
+
+def test_the_launcher_runs_every_fetch_the_dashboard_needs():
+    """The shortcut has to be a shortcut.
+
+    An earlier version of run-job-radar.bat ran only scripts/fetch.py, so the
+    YC tab opened saying "Nothing yet. Run scripts/fetch_yc.py" — a one-click
+    launcher that still required a command to be typed. Any fetch script the
+    dashboard depends on must be invoked by it.
+    """
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    launcher = (root / "run-job-radar.bat").read_text(encoding="utf-8")
+
+    for script in ("fetch.py", "fetch_yc.py"):
+        assert script in launcher, f"launcher never runs {script}"
+    # And it must put the package on the path, or the module will not import.
+    assert "PYTHONPATH" in launcher
+    assert "jobradar.api" in launcher
+
+
+def test_every_fetch_script_is_covered_by_the_launcher():
+    """Guards the case where a new source is added with its own script and
+    the launcher is forgotten, which is how this broke the first time."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    launcher = (root / "run-job-radar.bat").read_text(encoding="utf-8")
+    fetchers = {p.name for p in (root / "scripts").glob("fetch*.py")}
+    missing = [f for f in fetchers if f not in launcher]
+    assert not missing, f"launcher does not run: {missing}"

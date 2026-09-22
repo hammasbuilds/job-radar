@@ -415,6 +415,25 @@ def yc_companies(bucket: str | None = None, ai_only: bool = False,
         conn.close()
 
 
+def yc_age_hours(path: Path | None = None) -> float | None:
+    """How old the stored YC directory is, or None when there is none.
+
+    Used by the launcher so a one-click run does not spend two minutes
+    re-resolving 326 company boards that were resolved this morning.
+    """
+    conn = connect(path)
+    try:
+        row = conn.execute("SELECT MAX(at) AS at FROM yc_company").fetchone()
+        if not row or not row["at"]:
+            return None
+        stored = datetime.fromisoformat(row["at"])
+        if stored.tzinfo is None:
+            stored = stored.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - stored).total_seconds() / 3600
+    finally:
+        conn.close()
+
+
 def yc_counts(path: Path | None = None) -> dict:
     conn = connect(path)
     try:

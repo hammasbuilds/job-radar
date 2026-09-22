@@ -37,7 +37,21 @@ def main() -> None:
                         help="only companies launched within the last year")
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--fresh", action="store_true")
+    parser.add_argument(
+        "--if-older-than", type=float, default=None, metavar="HOURS",
+        help="skip entirely when the stored directory is newer than this",
+    )
     args = parser.parse_args()
+
+    # The launcher passes this so a one-click run does not spend two minutes
+    # re-resolving 326 company boards that were resolved this morning. YC
+    # batches move on a scale of weeks; a day-old directory is current.
+    if args.if_older_than is not None:
+        age = store.yc_age_hours()
+        if age is not None and age < args.if_older_than:
+            print(f"YC directory is {age:.1f}h old — still current, skipping.")
+            print("Force a refresh with: python scripts/fetch_yc.py --fresh")
+            return
 
     kw = {"max_age": 0.0} if args.fresh else {}
     companies = yc.hiring(ai_only=not args.all, **kw)

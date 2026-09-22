@@ -162,13 +162,26 @@ def jobs_for(company: YCCompany, **kw) -> list[Posting]:
     still appears in the directory with its website and YC profile, because
     "funded, hiring, no board I can read" is still worth an email.
     """
-    from . import greenhouse, lever
+    from . import ats, greenhouse, lever
 
-    for fetch in (greenhouse.fetch, lever.fetch):
-        try:
-            got = fetch(company.slug, company=company.name, **kw)
-        except Exception:
-            continue
-        if got:
-            return got
+    # Ashby first. The YC batches since roughly 2022 use it, and resolving
+    # only Greenhouse and Lever found a board for 13 of 326 companies —
+    # a directory rather than a job list. The slug is also tried with
+    # hyphens removed, because YC writes "lambda-robotics" where the ATS
+    # is often "lambdarobotics".
+    slugs = [company.slug]
+    stripped = company.slug.replace("-", "")
+    if stripped != company.slug:
+        slugs.append(stripped)
+
+    fetchers = (ats.ashby, greenhouse.fetch, lever.fetch,
+                ats.workable, ats.smartrecruiters)
+    for fetch in fetchers:
+        for slug in slugs:
+            try:
+                got = fetch(slug, company=company.name, **kw)
+            except Exception:
+                continue
+            if got:
+                return got
     return []
