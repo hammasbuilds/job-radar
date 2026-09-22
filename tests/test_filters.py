@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import pytest
 
-from jobradar.filters import authorisation, employment, places, remote, timezone
+from jobradar.filters import authorisation, employment, places, remote, seniority, timezone
 from jobradar.posting import Posting
 
 
@@ -206,3 +206,83 @@ def test_us_pacific_hours_are_nights():
 
 def test_async_is_detected():
     assert timezone.classify(make(text="We are async-first, no core hours."))[0] == timezone.ASYNC
+
+
+# --- seniority and years ----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "title,level",
+    [
+        ("AI Engineer", seniority.MID),
+        ("Machine Learning Engineer", seniority.MID),
+        ("AI Engineer II", seniority.MID),
+        ("Junior AI Engineer", seniority.JUNIOR),
+        ("Graduate AI Engineer", seniority.JUNIOR),
+        ("Entry-Level Data Scientist", seniority.JUNIOR),
+        ("New Grad ML Engineer", seniority.JUNIOR),
+        ("Assistant AI Engineer", seniority.ASSISTANT),
+        ("Associate AI Engineer", seniority.ASSOCIATE),
+        ("Senior AI Engineer", seniority.SENIOR),
+        ("Sr. ML Engineer", seniority.SENIOR),
+        ("Staff Software Engineer, Inference", seniority.STAFF),
+        ("Lead Machine Learning Scientist", seniority.LEAD),
+        ("Principal Research Scientist", seniority.PRINCIPAL),
+        ("Head of AI", seniority.EXECUTIVE),
+        ("VP of Engineering", seniority.EXECUTIVE),
+        ("ML Engineer Intern", seniority.INTERN),
+        ("Working Student, AI", seniority.INTERN),
+    ],
+)
+def test_seniority_is_read_from_the_title(title, level):
+    assert seniority.classify(title)[0] == level
+
+
+def test_a_title_with_no_level_word_is_mid_not_unknown():
+    """The common case, and the one that must not be thrown away.
+
+    "AI Engineer" is exactly the sort of posting wanted. Treating an absent
+    level word as a missing qualification would reject most of the good ones.
+    """
+    assert seniority.classify("AI Engineer")[0] == seniority.MID
+
+
+@pytest.mark.parametrize(
+    "title", ["Lead Generation Engineer", "Senior Care Platform Engineer"]
+)
+def test_a_level_word_inside_a_product_name_is_not_a_rank(title):
+    assert seniority.classify(title)[0] == seniority.MID
+
+
+@pytest.mark.parametrize(
+    "text,years",
+    [
+        ("3+ years of experience with Python", 3),
+        ("5+ years of relevant experience", 5),
+        ("at least 4 years of experience", 4),
+        ("minimum of 2 years experience in ML", 2),
+        ("1-3 years of experience", 1),
+        ("You have three years of experience", 3),
+        ("No experience requirement here at all", None),
+    ],
+)
+def test_years_demanded_is_read_from_the_body(text, years):
+    assert seniority.years_required(text) == years
+
+
+def test_company_history_is_not_a_requirement():
+    """"Founded 8 years ago" is not asking for eight years of experience."""
+    assert seniority.years_required("Founded 8 years ago, a team of 50.") is None
+
+
+def test_the_lowest_bar_stated_is_the_one_that_counts():
+    """A description often states a requirement and then a wish. Rejecting on
+    the wish throws away a job the candidate is qualified for."""
+    text = "8 years of experience required; 3 years with Python preferred"
+    assert seniority.years_required(text) == 3
+
+
+def test_a_junior_title_that_demands_eight_years_is_not_junior():
+    """The reason years are read at all: the title and the body disagree."""
+    assert seniority.classify("AI Engineer")[0] == seniority.MID
+    assert seniority.years_required("You will need 8 years of experience.") == 8

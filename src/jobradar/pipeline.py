@@ -21,7 +21,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .filters import authorisation, employment, fit, places, remote, timezone
+from .filters import authorisation, employment, fit, places, remote, seniority, timezone
+from .profile import ACCEPT_LEVELS, MAX_YEARS
 
 SPONSORSHIP = "sponsorship"
 REMOTE = "remote"
@@ -104,10 +105,16 @@ def judge(posting) -> dict:
     zone, zone_why = timezone.classify(posting)
     score, fit_why = fit.score(posting)
     where = places.regions_of(posting.location) or places.regions_of(posting.title)
+    level, level_why = seniority.classify(posting.title)
+    years = seniority.years_required(posting.text)
 
     return {
         "regions": sorted(where),
         "role": fit.role_match(posting.title) or "",
+        "level": level, "level_why": level_why,
+        "years": years,
+        "years_why": (f"asks for {years}+ years" if years
+                      else "no experience requirement stated"),
         "scope": scope, "scope_why": scope_why,
         "auth": auth, "auth_why": auth_why,
         "employment": form, "employment_why": form_why,
@@ -183,6 +190,20 @@ def run(postings: list, min_score: float = MIN_SCORE) -> tuple[list, Funnel]:
         # most of what a company advertises is not an AI role.
         if not verdict["role"]:
             funnel.kill(posting, "not one of the target roles")
+            continue
+
+        # Entry to mid only. Senior, staff and lead titles are most of what is
+        # advertised and score identically on every other filter, so ranking
+        # them down would just bury the junior roles further down one list.
+        if verdict["level"] not in ACCEPT_LEVELS:
+            funnel.kill(posting, f"{verdict['level']} level")
+            continue
+
+        # Fresher to three years. Checked against the body, not the title,
+        # because the two disagree often: a role titled "AI Engineer" that
+        # asks for eight years is senior and did not say so.
+        if verdict["years"] is not None and verdict["years"] > MAX_YEARS:
+            funnel.kill(posting, f"wants {verdict['years']}+ years")
             continue
         if verdict["score"] < min_score:
             funnel.kill(posting, "below fit threshold")

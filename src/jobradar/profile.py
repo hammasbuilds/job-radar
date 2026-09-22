@@ -20,6 +20,32 @@ from __future__ import annotations
 # against. Change this. Nothing else in the project depends on it.
 YEARS = 3
 
+# Which seniority levels to keep. Entry to mid: assistant, junior, associate,
+# and titles with no level word at all — "AI Engineer" rather than "Senior AI
+# Engineer".
+#
+# `mid` is in the list and it matters most: a title with no level word is the
+# common case and is exactly what is wanted. Absence of a word is not a
+# missing qualification.
+#
+# Senior, staff, lead, principal and executive titles are rejected rather than
+# ranked down, because they are most of what gets advertised — roughly four
+# senior postings for every junior one — and they score identically on every
+# other filter, so a ranking penalty just buries the junior roles further
+# down the same list. They land in the Killed tab with their level shown, so
+# the decision is visible and reversible.
+#
+# Add "senior" here to see them again.
+ACCEPT_LEVELS = ("assistant", "junior", "associate", "mid")
+
+# Fresher to three years. A posting demanding more than this is rejected even
+# when its title reads junior — "AI Engineer" that asks for eight years in
+# paragraph three is a senior role that forgot to say so in its title.
+#
+# A posting that states no requirement at all is kept: most do not state one,
+# and silence is not a demand.
+MAX_YEARS = 3
+
 # The roles actually being looked for. A posting whose *title* is one of these
 # is the thing; everything else is a stack match that happens to mention ML.
 #
