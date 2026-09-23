@@ -144,3 +144,38 @@ main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
 /* A company row lists its open roles, one per line. */
 .row .why > div { margin: 3px 0; }
 .row .why a.apply { margin-right: 6px; }
+
+/* --- the gap report, opened under a row ---------------------------------- */
+
+.gaptoggle {
+  background: none; border: 0; color: var(--accent); cursor: pointer;
+  font: inherit; font-size: 13px; padding: 8px 0 0; text-align: left;
+}
+.gaptoggle:hover { text-decoration: underline; }
+
+.gap { display: none; margin-top: 10px; }
+.gap.open { display: block; }
+
+.gaphead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.gaphead .pct {
+  font-size: 22px; font-weight: 680; color: var(--ok);
+  font-variant-numeric: tabular-nums;
+}
+/* Too few skills named to score. Shown as a dash rather than a number, so a
+   thin comparison cannot be mistaken for a confident one. */
+.gaphead .pct.thin { color: var(--dim); font-size: 18px; }
+.gaphead .verdict { color: var(--ink); font-size: 13.5px; }
+
+.gapcols { display: flex; gap: 22px; margin-top: 12px; flex-wrap: wrap; }
+.gapcol { flex: 1 1 260px; min-width: 240px; }
+.gapcoltitle {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--dim); margin-bottom: 7px;
+}
+.gapitem { font-size: 13px; padding: 3px 0 3px 12px; border-left: 2px solid var(--line); }
+.gapitem.have { border-left-color: color-mix(in srgb, var(--ok) 55%, var(--line)); }
+.gapitem.missing { border-left-color: color-mix(in srgb, var(--kill) 55%, var(--line)); }
+.gapwhy { color: var(--dim); font-size: 12px; }
+.gapproof { color: var(--dim); font-size: 12px; font-style: italic; }
+.gapnone { color: var(--dim); font-size: 13px; font-style: italic; }
+.gapnote { color: var(--dim); font-size: 12px; margin-top: 12px; }

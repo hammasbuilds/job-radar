@@ -24,6 +24,52 @@ function badge(text, value) {
   return b;
 }
 
+function gapView(g) {
+  const box = el("div");
+
+  const head = el("div", "gaphead");
+  // The percentage is deliberately quiet when the posting named too few
+  // skills to score. A confident 100% built on one matched word is worse
+  // than no number, and the server flags that case rather than hiding it.
+  const pct = el("span", "pct" + (g.thin ? " thin" : ""), g.thin ? "—" : g.percent + "%");
+  head.append(pct, el("span", "verdict", g.verdict));
+  box.append(head);
+  if (g.note) box.append(el("div", "gapnote", g.note));
+
+  const column = (title, items, kind) => {
+    const wrap = el("div", "gapcol");
+    wrap.append(el("div", "gapcoltitle", title + " (" + items.length + ")"));
+    if (!items.length) {
+      wrap.append(el("div", "gapnone", kind === "have" ? "nothing matched"
+                                                       : "nothing missing"));
+      return wrap;
+    }
+    items.slice(0, 12).forEach((n) => {
+      const line = el("div", "gapitem " + kind);
+      line.append(el("b", null, n.skill));
+      const marks = [];
+      if (n.in_title) marks.push("in the title");
+      if (n.mentions > 1) marks.push(n.mentions + "×");
+      if (n.nice) marks.push("nice-to-have");
+      if (marks.length) line.append(el("span", "gapwhy", " " + marks.join(" · ")));
+      // Evidence, not a tick: "PyTorch" means nothing without the repo that
+      // proves it, and that repo is what you cite in the application.
+      if (n.proof) line.append(el("span", "gapproof", " ← " + n.proof));
+      wrap.append(line);
+    });
+    return wrap;
+  };
+
+  const cols = el("div", "gapcols");
+  cols.append(column("You can show", g.have, "have"));
+  cols.append(column("Missing from CV + GitHub", g.missing, "missing"));
+  box.append(cols);
+
+  box.append(el("div", "gapnote",
+    "Compared against " + g.inventory_size + " skills proven across your repos and CV."));
+  return box;
+}
+
 function row(p) {
   const v = p.verdict || {};
   const node = el("div", "row");
@@ -88,6 +134,29 @@ function row(p) {
       track.append(b);
     });
     node.append(track);
+  }
+
+  // The gap report, opened on click. Fetched rather than precomputed: the
+  // inventory changes whenever a repo is pushed or the CV is edited, so a
+  // score cached at crawl time would go stale against a moving profile.
+  if (!p.reason && p.id) {
+    const panel = el("div", "gap");
+    const toggle = el("button", "gaptoggle", "match against my CV + GitHub ▾");
+    let loaded = false;
+    toggle.onclick = async () => {
+      panel.classList.toggle("open");
+      if (loaded) return;
+      loaded = true;
+      panel.textContent = "reading the posting…";
+      try {
+        const g = await (await fetch("/api/gap/" + p.id)).json();
+        panel.innerHTML = "";
+        panel.append(gapView(g));
+      } catch (e) {
+        panel.textContent = "could not build the report";
+      }
+    };
+    node.append(toggle, panel);
   }
 
   const badges = el("div", "badges");

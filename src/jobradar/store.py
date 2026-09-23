@@ -277,6 +277,25 @@ def newest(limit: int = 40, path: Path | None = None) -> list[dict]:
         conn.close()
 
 
+def posting(posting_id: str, path: Path | None = None) -> dict | None:
+    """One posting, **with** its description.
+
+    Every other reader here strips `text` — it is up to 20 KB and no list
+    needs it. The gap report is the exception: comparing a job against a CV
+    means reading the job, so this is the one accessor that keeps the body.
+    """
+    conn = connect(path)
+    try:
+        row = conn.execute("SELECT * FROM posting WHERE id = ?", (posting_id,)).fetchone()
+        if not row:
+            return None
+        out = dict(row)
+        out["verdict"] = json.loads(out["verdict"])
+        return out
+    finally:
+        conn.close()
+
+
 def killed(reason: str | None = None, limit: int = 200,
            path: Path | None = None) -> list[dict]:
     """Rejections, newest first, optionally one reason at a time."""

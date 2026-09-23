@@ -25,7 +25,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import pipeline, store
+from functools import lru_cache
+
+from . import gap, inventory, pipeline, store
 
 WEB = Path(__file__).resolve().parent / "web"
 
@@ -65,6 +67,27 @@ def yc(bucket: str | None = None, ai_only: bool = False) -> JSONResponse:
         "companies": store.yc_companies(bucket=bucket, ai_only=ai_only),
         "counts": store.yc_counts(),
     })
+
+
+@app.get("/api/gap/{posting_id}")
+def gap_for(posting_id: str) -> JSONResponse:
+    """How this posting matches the portfolio and CV, and what is missing.
+
+    Computed when a row is opened rather than during the crawl: the inventory
+    changes whenever a repo is pushed or the CV is edited, and a match score
+    cached at crawl time would quietly go stale against a moving profile.
+    """
+    row = store.posting(posting_id)
+    if not row:
+        return JSONResponse({"error": "unknown posting"}, status_code=404)
+    report = gap.analyse(row["title"], row.get("text") or "", _inventory())
+    return JSONResponse(gap.as_dict(report))
+
+
+@lru_cache(maxsize=1)
+def _inventory():
+    """Built once per process. Restart the server after editing the CV."""
+    return inventory.build()
 
 
 @app.get("/api/killed")

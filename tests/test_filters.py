@@ -308,3 +308,79 @@ def test_a_source_cannot_inject_a_non_string_tag():
     # rather than `contractor`: the flattened list holds both "Contract" and
     # "Full-Time", and offering both is exactly what that verdict is for.
     assert employment.classify(posting)[0] == employment.EITHER
+
+
+# --- the gap report ---------------------------------------------------------
+
+
+def test_skill_aliases_unify():
+    from jobradar import skills as sk
+    assert sk.found_in("we use K8s") == sk.found_in("we use Kubernetes")
+    assert "PyTorch" in sk.found_in("experience with torch")
+    assert "Hugging Face" in sk.found_in("huggingface transformers")
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("you can go live on day one", set()),
+        ("it will go well", set()),
+        ("We want Go programming", {"Go"}),
+        ("built in Go", {"Go"}),
+        ("C/C++ experience", {"C", "C++"}),
+        ("Node.js and JavaScript", {"JavaScript"}),
+    ],
+)
+def test_common_words_are_not_read_as_languages(text, expected):
+    """"Go" alone matched "go live" and reported Go as a missing requirement
+    for an AI research role. One-letter and common-word names need a
+    programming context or they match ordinary prose."""
+    from jobradar import skills as sk
+    found = sk.found_in(text)
+    assert {s for s in found if s in {"Go", "C", "C++", "R", "JavaScript"}} == expected
+
+
+def test_a_percentage_from_one_skill_is_withheld():
+    """The denominator doing the work.
+
+    A posting naming one skill you happen to have scores 100%, which is not a
+    match — it is arithmetic on too little. The report says so instead.
+    """
+    from jobradar import gap, inventory
+    inv = inventory.Inventory(evidence={"Python": ["some-repo"]})
+    report = gap.analyse("Engineer", "You will write Python.", inv)
+    assert report.thin
+    assert "too few to score" in report.verdict
+
+
+def test_a_real_comparison_reports_both_sides_with_evidence():
+    from jobradar import gap, inventory
+    inv = inventory.Inventory(evidence={
+        "Python": ["classical-computer-vision"], "PyTorch": ["qlora-finetune-suite"],
+        "RAG": ["rag-forge"], "FastAPI": ["rag-forge"],
+    })
+    text = ("You will build with Python, PyTorch and FastAPI. "
+            "Experience with Kubernetes and Terraform required. "
+            "Kubernetes is used across our stack, Kubernetes everywhere.")
+    report = gap.analyse("ML Engineer", text, inv)
+    assert not report.thin
+    have = {n.skill for n in report.have}
+    missing = {n.skill for n in report.missing}
+    assert {"Python", "PyTorch", "FastAPI"} <= have
+    assert {"Kubernetes", "Terraform"} <= missing
+    # Every matched skill cites what proves it — that is the whole point.
+    assert all(n.proof for n in report.have)
+    # And the most-repeated missing skill ranks first.
+    assert report.missing[0].skill == "Kubernetes"
+
+
+def test_a_nice_to_have_counts_for_less_than_a_requirement():
+    from jobradar import gap, inventory
+    inv = inventory.Inventory(evidence={"Python": ["repo"]})
+    required = gap.analyse(
+        "Engineer",
+        "Python required. Kubernetes required. Docker required. AWS required.", inv)
+    optional = gap.analyse(
+        "Engineer",
+        "Python required. Nice-to-have: Kubernetes. Bonus: Docker. Bonus: AWS.", inv)
+    assert optional.percent > required.percent
