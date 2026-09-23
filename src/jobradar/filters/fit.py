@@ -45,6 +45,52 @@ _TOO_SENIOR = re.compile(
 )
 
 
+# A domain word plus a craft word, anywhere in the title, in either order.
+#
+# The exhaustive phrase list below could not keep up with reality. It required
+# a contiguous match, so "AI & System Engineer" failed because the title never
+# says "ai engineer", and "AI Automation Engineer" failed for the same reason.
+# Worse, "Data Scientist" was simply absent from the list — a core ML title
+# missing outright, which killed every one of it in Pakistan and the Gulf.
+#
+# So: does the title name an AI/data domain AND an engineering craft? That
+# generalises without loosening, because the craft list is what does the
+# rejecting. "Creative Designer, Video Editor & AI Specialist" and "Pre-Sales
+# Specialist (AI / Software Platforms)" both name a domain and are still
+# rejected, because designer, editor and specialist are not crafts here.
+_DOMAIN = re.compile(
+    r"\b(?:a\.?i\.?|ml|machine[- ]learning|deep[- ]learning|llms?|nlp|"
+    r"computer[- ]vision|generative(?:[- ]ai)?|gen[- ]?ai|agentic|"
+    r"data[- ]scien\w*|mlops|robotics|perception|speech|vision)\b",
+    re.I,
+)
+_CRAFT = re.compile(
+    r"\b(?:engineer|engineering|scientist|researcher|research|developer|"
+    r"architect|programmer)\b",
+    re.I,
+)
+
+# Titles that name a domain and a craft and are still not the job. "Sales
+# Engineer" and "Solutions Architect" sit in front of customers; a "Support
+# Engineer" answers tickets.
+_NOT_THE_JOB = re.compile(
+    r"\b(?:sales|pre[- ]sales|account|customer|support|solutions?|marketing|"
+    r"recruit\w*|teacher|tutor|trainer|instructor|intern(?:ship)?)\b",
+    re.I,
+)
+
+
+def composite_role(title: str) -> str | None:
+    """A domain word and a craft word in one title, e.g. "AI & System Engineer"."""
+    if _NOT_THE_JOB.search(title):
+        return None
+    domain = _DOMAIN.search(title)
+    craft = _CRAFT.search(title)
+    if domain and craft:
+        return f"{domain.group(0).lower()} {craft.group(0).lower()}"
+    return None
+
+
 def role_match(title: str) -> str | None:
     """The target role this title *is*, if any.
 
@@ -60,7 +106,10 @@ def role_match(title: str) -> str | None:
         if f" {role} " in low or low.strip().endswith(role):
             if best is None or len(role) > len(best):
                 best = role
-    return best
+    # The named list wins when it matches — its answer is the specific role.
+    # Otherwise fall back to the compositional rule, which catches the titles
+    # no finite list will ever contain.
+    return best or composite_role(title)
 
 
 def score(posting) -> tuple[float, str]:

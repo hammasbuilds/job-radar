@@ -384,3 +384,60 @@ def test_a_nice_to_have_counts_for_less_than_a_requirement():
         "Engineer",
         "Python required. Nice-to-have: Kubernetes. Bonus: Docker. Bonus: AWS.", inv)
     assert optional.percent > required.percent
+
+
+# --- the role matcher, after Pakistan and Gulf came back empty ---------------
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Data Scientist",
+        "Associate Data Scientist - Builders Program",
+        "AI Automation Engineer",
+        "AI Automation Specialist",
+        "AI & System Engineer",
+        "AI Automation Architect & GoHighLevel Systems Builder",
+        "Field Engineer - Robotics And AI",
+    ],
+)
+def test_real_titles_that_the_phrase_list_alone_missed(title):
+    """All seven are from the corpus and all seven were killed.
+
+    340 Pakistan postings and 183 Gulf ones were being fetched, and every
+    Pakistan one died on "not one of the target roles". Two causes: the list
+    required a contiguous phrase, so "AI & System Engineer" failed because the
+    title never says "ai engineer"; and "Data Scientist" was simply absent
+    from the list, which is a core ML title missing outright.
+    """
+    from jobradar.filters import fit
+
+    assert fit.role_match(title), title
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Call Center Sales Executive",
+        "Trainee Massage Therapist",
+        "Waiter / Restaurant Service Staff",
+        "Trailer Driver Saudi Arabia",
+        "Creative Designer, Video Editor & AI Specialist",
+        "Pre-Sales Specialist (AI / Software Platforms)",
+        "Account Manager - Retail",
+        "Senior Supply Chain Manager",
+        "Maintenance Technician",
+        "Head of Anti-Money Laundering",
+    ],
+)
+def test_the_compositional_rule_did_not_open_the_gates(title):
+    """The other half of the fix, and the one that matters.
+
+    Generalising the matcher is only safe if it still rejects. The last three
+    of these name an AI domain and are still not the job: designer, editor,
+    specialist and pre-sales are not crafts, and the craft list is what does
+    the rejecting.
+    """
+    from jobradar.filters import fit
+
+    assert fit.role_match(title) is None, title

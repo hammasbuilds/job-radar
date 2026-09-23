@@ -84,6 +84,15 @@ TARGET_ROLES = [
     # The same jobs under the titles companies actually post them as.
     "machine learning scientist",
     "applied scientist",
+    # Absent from the first version, which killed every one of them: 340
+    # Pakistan postings and 183 Gulf ones were fetched and "Data Scientist"
+    # matched nothing at all.
+    "data scientist",
+    "data science engineer",
+    "ai automation engineer",
+    "ai automation specialist",
+    "ai developer",
+    "machine learning developer",
     "research engineer",
     "applied ai engineer",
     "ai/ml engineer",
