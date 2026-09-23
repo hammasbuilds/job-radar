@@ -94,8 +94,12 @@ SOURCES: tuple[Source, ...] = (
 
     # --- Pakistan: the one Asian region kept -------------------------------
     Source("Rozee.pk", "pakistan", NO_API,
-           "403 Forbidden to automated requests — blocks this outright"),
-    Source("Mustakbil", "pakistan", NO_API, "HTML only, no feed"),
+           "Cloudflare managed challenge on every path, robots.txt included; "
+           "getting past it means pretending to be a browser"),
+    Source("Mustakbil", "pakistan", WIRED,
+           "re-probed: publishes a sitemap index, and every job page carries "
+           "JobPosting JSON-LD. 1,403 live postings. Was recorded here as "
+           "'HTML only, no feed', which was wrong"),
     Source("BrightSpyre", "pakistan", NO_API, "HTML only, no feed"),
     Source("NJP (National Job Portal)", "pakistan", NO_API,
            "government portal, HTML only — the legitimate route if scraped"),

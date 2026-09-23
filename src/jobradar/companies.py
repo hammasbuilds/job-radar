@@ -45,12 +45,26 @@ SEEDS: dict[str, tuple[str, ...]] = {
         # Gulf-headquartered firms. That is a limit of the sources, and the
         # Gulf tab says so rather than looking empty for no reason.
         "tamara", "careem", "hala",
+        # Pakistan-linked, found in the second pass: Motive (ex-KeepTruckin)
+        # runs its largest engineering office in Lahore, Careem in Karachi.
+        "motive",
     ),
     "lever": (
         "gopuff", "palantir", "spotify", "qonto", "agicap",
         "contentsquare", "swile", "jobandtalent", "matillion", "younited",
         # Pakistan. 16 probed, one readable board.
         "educative",
+    ),
+    # Pakistan, second pass. The first pass asked 16 employers and only
+    # Greenhouse and Lever, which is why the section read as almost empty:
+    # the answer was not "Pakistani employers do not publish boards", it was
+    # "they do not publish them on the two providers we asked". Re-probing 65
+    # employers across six providers found seven readable boards.
+    "smartrecruiters": (
+        "devsinc", "purelogics", "securiti",
+    ),
+    "ashby": (
+        "tajir",
     ),
 }
 

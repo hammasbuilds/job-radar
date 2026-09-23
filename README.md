@@ -146,6 +146,40 @@ contractor"*, answers **"find me clients"** instead of "find me a job".
 Contract work is accepted alongside employment, never instead of it — it is a badge and a
 ranking weight, and it never kills a posting.
 
+## Why the Pakistan tab is empty, with numbers
+
+It is not that the local sources could not be read. That was re-checked, and the
+earlier answer was wrong in two places:
+
+- `registry.py` recorded **Mustakbil** as "HTML only, no feed". It publishes a sitemap
+  index, an RSS feed carrying the 500 most recent postings with company, city, category
+  and full description in **one request**, and JobPosting JSON-LD on all 1,403 live job
+  pages. It is now wired and runs on every crawl.
+- The employer probe asked **16 Pakistani companies, on two ATS providers**. Re-probing
+  **65 employers across six** — the five in `ats.py` were implemented but `fetch.py` only
+  ever called two of them — found **seven readable boards**: Devsinc, PureLogics and
+  Securiti on SmartRecruiters, Tajir on Ashby, Motive and Careem on Greenhouse, Educative
+  on Lever.
+
+So Pakistan now contributes **332 postings** to a crawl instead of a handful. The tab is
+still empty, and this is the actual reason:
+
+> Of those 332, **five** have AI in the title. All five are killed by the role filter as
+> *"title is not a target role"* — and correctly: they are an automation architect for
+> GoHighLevel, a robotics field engineer, a video editor, and two marketing-automation
+> roles. Not one is an ML engineering job.
+
+**Rozee.pk stays unread.** It is bigger than Mustakbil and every path, `robots.txt`
+included, answers with a Cloudflare managed challenge. Getting past that means
+impersonating a browser, which is where reading a public record turns into evading a
+control.
+
+**LinkedIn stays unread too**, and that is where the AI roles people see in Pakistan
+actually are. Their terms forbid automated collection, they publish no open jobs API, and
+the account at risk is the one this tool exists to get a job with. The honest summary is
+that the volume visible there does not exist on any board that permits being read — those
+employers post to LinkedIn and nowhere else. Links only, as before.
+
 ## Four things that went wrong on real data
 
 Each was found by reading the output, and each is now a test using the exact string that

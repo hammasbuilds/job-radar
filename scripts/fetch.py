@@ -21,13 +21,26 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from jobradar import companies, pipeline, store  # noqa: E402
-from jobradar.sources import aggregators, boards, greenhouse, lever  # noqa: E402
+from jobradar.sources import (  # noqa: E402
+    aggregators, ats, boards, greenhouse, lever, mustakbil,
+)
 from jobradar.sources.http import SourceError  # noqa: E402
 
-FETCHERS = {"greenhouse": greenhouse.fetch, "lever": lever.fetch}
+# Six providers, not two. companies.py can seed a slug on any of them, and
+# for a while it could not: the Pakistan section looked empty because the only
+# two providers asked were the two Pakistani employers least often use.
+FETCHERS = {
+    "greenhouse": greenhouse.fetch,
+    "lever": lever.fetch,
+    "workable": ats.workable,
+    "ashby": ats.ashby,
+    "smartrecruiters": ats.smartrecruiters,
+    "recruitee": ats.recruitee,
+}
 
 
-def collect(fresh: bool, quiet: bool = False) -> tuple[list, dict]:
+def collect(fresh: bool, quiet: bool = False,
+            pakistan: bool = False) -> tuple[list, dict]:
     kw = {"max_age": 0.0} if fresh else {}
     postings = []
     per_source = {}
@@ -65,6 +78,35 @@ def collect(fresh: bool, quiet: bool = False) -> tuple[list, dict]:
             if not quiet:
                 print(f"  ! {name}: {exc}")
 
+    # Mustakbil is one HTTP request per posting - 1,403 of them, paced - so it
+    # is opt-in rather than part of every run. Everything else here answers in
+    # one call and the whole default crawl is about five minutes; adding
+    # twenty to it by default would make the launcher's one-click run useless.
+    try:
+        got = mustakbil.fetch_feed(**kw)
+        postings += got
+        per_source["mustakbil"] = len(got)
+    except (SourceError, ValueError, OSError) as exc:
+        if not quiet:
+            print(f"  ! mustakbil: {exc}")
+
+    # The deep sweep: all 1,403 live postings instead of the feed's freshest
+    # 500, at one request each. Opt-in because their pages answer in about
+    # nine seconds, so a full pass is hours rather than minutes.
+    if pakistan:
+        try:
+            def tick(i, n, kept):
+                if not quiet:
+                    print(f"  mustakbil {i}/{n} fetched, {kept} parsed")
+
+            seen = {p.url for p in postings}
+            got = [p for p in mustakbil.fetch(progress=tick) if p.url not in seen]
+            postings += got
+            per_source["mustakbil"] = per_source.get("mustakbil", 0) + len(got)
+        except (SourceError, ValueError, OSError) as exc:
+            if not quiet:
+                print(f"  ! mustakbil deep sweep: {exc}")
+
     if dead and not quiet:
         print(f"  {len(dead)} board(s) returned nothing: {', '.join(dead[:8])}"
               f"{' …' if len(dead) > 8 else ''}")
@@ -75,6 +117,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fresh", action="store_true", help="ignore the HTTP cache")
     parser.add_argument("--min-score", type=float, default=pipeline.MIN_SCORE)
+    parser.add_argument(
+        "--pakistan", action="store_true",
+        help="Mustakbil deep sweep: all 1,403 postings, one request each. "
+             "The feed's freshest 500 are fetched on every run regardless.",
+    )
     parser.add_argument(
         "--if-older-than", type=float, default=None, metavar="HOURS",
         help="skip entirely when the last run is newer than this",
@@ -96,8 +143,9 @@ def main() -> None:
                 return
 
     started = time.time()
-    print(f"asking {companies.count()} company boards plus 7 job-board APIs…")
-    postings, per_source = collect(args.fresh)
+    extra = " plus a Mustakbil deep sweep" if args.pakistan else ""
+    print(f"asking {companies.count()} company boards plus 8 job-board APIs{extra}…")
+    postings, per_source = collect(args.fresh, pakistan=args.pakistan)
     if not postings:
         raise SystemExit("nothing fetched — check the network, then --fresh")
 
