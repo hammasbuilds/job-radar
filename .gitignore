@@ -14,3 +14,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+
+# Local backups of the personal database, and the personal config.
+data/*.sqlite3*
+config.toml

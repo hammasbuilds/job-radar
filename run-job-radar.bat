@@ -14,10 +14,35 @@ REM over in an hour and YC batches move on a scale of weeks.
 title job-radar
 cd /d "%~dp0"
 
-if exist ".venv\Scripts\python.exe" (
-    set "PY=.venv\Scripts\python.exe"
-) else (
-    set "PY=python"
+REM Find a Python that can actually run this: this repo's own .venv first (the
+REM one install.bat creates), then the standard per-user installs, then
+REM whatever "python" is on PATH. Each candidate must import fastapi and
+REM uvicorn; no other project's virtualenv is named here.
+set "PY="
+for %%P in (
+    ".venv\Scripts\python.exe"
+    "%LOCALAPPDATA%\Programs\Python\Python313\python.exe"
+    "%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+    "%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
+    "%APPDATA%\uv\python\cpython-3.12-windows-x86_64-none\python.exe"
+    "%APPDATA%\uv\python\cpython-3.11-windows-x86_64-none\python.exe"
+) do if not defined PY if exist %%P (
+    %%P -c "import fastapi, uvicorn" >nul 2>&1 && set "PY=%%~P"
+)
+if not defined PY (
+    for /f "delims=" %%I in ('where python 2^>nul') do if not defined PY (
+        "%%I" -c "import fastapi, uvicorn" >nul 2>&1 && set "PY=%%I"
+    )
+)
+if not defined PY (
+    echo.
+    echo   No Python with fastapi and uvicorn was found.
+    echo   Fix it by running install.bat, or by hand:
+    echo       python -m venv "%~dp0.venv"
+    echo       "%~dp0.venv\Scripts\python.exe" -m pip install -e "%~dp0."
+    echo.
+    pause
+    exit /b 1
 )
 
 REM The package lives in src\ and is not installed, so `python -m jobradar.api`
