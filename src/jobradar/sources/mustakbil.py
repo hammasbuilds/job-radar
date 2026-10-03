@@ -43,7 +43,7 @@ from __future__ import annotations
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..posting import Posting, clean
 from .http import get_text
@@ -74,7 +74,7 @@ def _iso(value) -> datetime | None:
         stamp = datetime.fromisoformat(text)
     except ValueError:
         return None
-    return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
+    return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
 
 
 def job_urls(limit: int | None = None) -> list[str]:
@@ -173,7 +173,7 @@ def _rss_date(value: str) -> datetime | None:
         stamp = parsedate_to_datetime(cleaned)
     except (TypeError, ValueError):
         return None
-    return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
+    return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
 
 
 def fetch_feed(category: int = 0, **kw) -> list[Posting]:

@@ -17,11 +17,21 @@ later, without re-running anything.
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-DB = Path(__file__).resolve().parents[2] / "data" / "radar.sqlite3"
+from . import config
+from .filters.fit import role_match
+from .posting import key_for
+
+# Application states a human can set. Anything else is refused, so a stray
+# request cannot write arbitrary text into the pipeline.
+STATES = ("applied", "replied", "rejected", "closed")
+
+# Bumped whenever stored ids or columns change meaning; see `_migrate`.
+SCHEMA_VERSION = 1
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS posting (
@@ -120,26 +130,86 @@ CREATE TABLE IF NOT EXISTS application (
 """
 
 
+def db_path(path: Path | None = None) -> Path:
+    """The database in use: an explicit path, else `$JOBRADAR_DB`, else data/."""
+    return path or config.db_path()
+
+
 def connect(path: Path | None = None) -> sqlite3.Connection:
-    target = path or DB
+    target = db_path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    existed = target.exists() and target.stat().st_size > 0
     conn = sqlite3.connect(target)
     conn.row_factory = sqlite3.Row
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
     conn.executescript(SCHEMA)
+    if existed and version < SCHEMA_VERSION:
+        _migrate(conn, target, version)
+    conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
     return conn
 
 
+def _migrate(conn: sqlite3.Connection, target: Path, version: int) -> None:
+    """Bring an older database up to `SCHEMA_VERSION`, after backing it up.
+
+    **v0 -> v1: posting ids.** v0 hashed the URL with its query string cut
+    off, so every posting whose job id lived in the query (Databricks and
+    Stripe `?gh_jid=`, Hacker News `item?id=`) shared one id per employer.
+    Each stored row is re-keyed from the URL it kept, and applications follow
+    their posting. Rows that v0 had already merged cannot be split again —
+    the other postings' URLs were never stored — so the verdicts on those
+    rows are cleared and the next run writes them afresh. The Killed table is
+    rebuilt by every run and is simply emptied.
+
+    The database is personal and cannot be regenerated (applications are
+    typed by hand), so a copy is taken first and never removed.
+    """
+    if version >= 1:
+        return
+    backup = target.with_name(f"{target.name}.pre-v1.bak")
+    if not backup.exists():
+        conn.commit()
+        shutil.copy2(target, backup)
+    with conn:
+        rows = conn.execute("SELECT id, url, source, company, title, location "
+                            "FROM posting").fetchall()
+        for row in rows:
+            new = key_for(row["url"], f"{row['source']}|{row['company']}|"
+                                      f"{row['title']}|{row['location']}")
+            if new == row["id"]:
+                continue
+            clash = conn.execute("SELECT 1 FROM posting WHERE id = ?", (new,)).fetchone()
+            if clash:
+                continue
+            conn.execute("UPDATE posting SET id = ? WHERE id = ?", (new, row["id"]))
+            conn.execute("UPDATE application SET posting_id = ? WHERE posting_id = ?",
+                         (new, row["id"]))
+        # Every row may carry a verdict grafted from another posting, and
+        # none is known to be current: clear the sections until a run says.
+        conn.execute("UPDATE posting SET section = ''")
+        conn.execute("DELETE FROM killed")
+
+
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def save(postings: list, funnel, path: Path | None = None) -> int:
-    """Upsert every posting. Returns how many were never seen before."""
+    """Record one run. Returns how many kept postings were never seen before.
+
+    The run is the whole truth about what is on screen. Every posting's
+    section is cleared first and only this run's survivors get theirs back,
+    so a posting kept yesterday and killed today — or one that has simply
+    disappeared from its board — leaves every tab instead of lingering in
+    both the Remote tab and the Killed tab at once. Rows are never deleted:
+    the Pipeline tab still reaches a posting you applied to after it closes.
+    """
     conn = connect(path)
     now = _now()
     new = 0
     try:
         with conn:
+            conn.execute("UPDATE posting SET section = ''")
             for posting in postings:
                 existing = conn.execute(
                     "SELECT first_seen FROM posting WHERE id = ?", (posting.key,)
@@ -153,6 +223,9 @@ def save(postings: list, funnel, path: Path | None = None) -> int:
                                          text, first_seen, last_seen)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     ON CONFLICT(id) DO UPDATE SET
+                        source=excluded.source, company=excluded.company,
+                        title=excluded.title, location=excluded.location,
+                        url=excluded.url, posted=excluded.posted, text=excluded.text,
                         score=excluded.score, evidence=excluded.evidence,
                         section=excluded.section, verdict=excluded.verdict,
                         last_seen=excluded.last_seen
@@ -183,7 +256,10 @@ def save(postings: list, funnel, path: Path | None = None) -> int:
                 (now, funnel.fetched, len(postings),
                  json.dumps({"killed": funnel.killed, "sections": funnel.sections,
                              "duplicates": funnel.duplicates,
-                             "after_dedup": funnel.after_dedup})),
+                             "after_dedup": funnel.after_dedup,
+                             # Rendered once, in pipeline order, so the
+                             # dashboard shows the same funnel as the console.
+                             "lines": funnel.as_lines()})),
             )
     finally:
         conn.close()
@@ -240,11 +316,28 @@ def section(name: str, limit: int = 100, per_company: int = PER_COMPANY,
         conn.close()
 
 
-def newest(limit: int = 40, path: Path | None = None) -> list[dict]:
-    """The Today screen: what appeared in the most recent run."""
+def section_total(name: str, path: Path | None = None) -> int:
+    """How many postings a section holds before the per-company cap."""
     conn = connect(path)
     try:
-        last = conn.execute("SELECT MAX(first_seen) AS t FROM posting").fetchone()["t"]
+        return conn.execute(
+            "SELECT COUNT(*) FROM posting WHERE ',' || section || ',' LIKE '%,' || ? || ',%'",
+            (name,),
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+
+def newest(limit: int = 40, path: Path | None = None) -> list[dict]:
+    """The Today screen: kept postings first seen in the most recent run.
+
+    "The most recent run", not "the newest first_seen". A run that found
+    nothing new must show nothing new; reading MAX(first_seen) instead showed
+    the previous run's postings again, so Today was not "new since last run".
+    """
+    conn = connect(path)
+    try:
+        last = conn.execute("SELECT MAX(at) AS t FROM run").fetchone()["t"]
         if not last:
             return []
         rows = conn.execute(
@@ -256,7 +349,7 @@ def newest(limit: int = 40, path: Path | None = None) -> list[dict]:
                        ) AS rank_in_company,
                        COUNT(*) OVER (PARTITION BY p.company) AS at_company
                 FROM posting p LEFT JOIN application a ON a.posting_id = p.id
-                WHERE p.first_seen = ?
+                WHERE p.first_seen = ? AND p.section != ''
             )
             SELECT * FROM ranked WHERE rank_in_company <= ?
             ORDER BY score DESC LIMIT ?
@@ -375,8 +468,6 @@ def save_yc(companies: list, path: Path | None = None) -> int:
                      c.age_label, len(c.jobs), now),
                 )
                 for job in c.jobs:
-                    from .filters.fit import role_match
-
                     conn.execute(
                         """INSERT OR REPLACE INTO yc_job
                            (id,slug,title,location,url,posted,role_match,at)
@@ -447,8 +538,8 @@ def yc_age_hours(path: Path | None = None) -> float | None:
             return None
         stored = datetime.fromisoformat(row["at"])
         if stored.tzinfo is None:
-            stored = stored.replace(tzinfo=timezone.utc)
-        return (datetime.now(timezone.utc) - stored).total_seconds() / 3600
+            stored = stored.replace(tzinfo=UTC)
+        return (datetime.now(UTC) - stored).total_seconds() / 3600
     finally:
         conn.close()
 
@@ -491,8 +582,14 @@ def last_run(path: Path | None = None) -> dict | None:
 
 def set_application(posting_id: str, state: str, noted: str = "",
                     path: Path | None = None) -> None:
+    """Record a human's decision. Raises ValueError for an unknown state and
+    KeyError for a posting that was never stored."""
+    if state not in STATES:
+        raise ValueError(f"state must be one of {', '.join(STATES)}")
     conn = connect(path)
     try:
+        if not conn.execute("SELECT 1 FROM posting WHERE id = ?", (posting_id,)).fetchone():
+            raise KeyError(posting_id)
         with conn:
             conn.execute(
                 """INSERT INTO application (posting_id, state, noted, at)

@@ -7,18 +7,11 @@ short list that a person can read and correct in a minute.
 
 `core` terms are weighted most heavily and `tools` least, because a job asking
 for PyTorch and computer vision is a different match from one that merely
-mentions Docker.
-
-**`years` is a stated assumption, not a fact read from anywhere.** It only
-affects the penalty for postings demanding far more experience, so setting it
-wrong makes the ranking worse and kills nothing.
+mentions Docker. They only rank; the gates are `ACCEPT_LEVELS`, `MAX_YEARS`
+and `TARGET_ROLES`.
 """
 
 from __future__ import annotations
-
-# Years of professional experience to compare a posting's stated requirement
-# against. Change this. Nothing else in the project depends on it.
-YEARS = 3
 
 # Which seniority levels to keep. Entry to mid: assistant, junior, associate,
 # and titles with no level word at all — "AI Engineer" rather than "Senior AI
@@ -71,8 +64,11 @@ TARGET_ROLES = [
     "ai agent engineer",
     "agent engineer",
     # Research titles. "All researchers" was asked for explicitly, so these
-    # are first-class targets rather than near-misses — in AI the research
-    # title is often the same job as the engineering one.
+    # are first-class targets rather than near-misses - in AI the research
+    # title is often the same job as the engineering one. Bare "researcher" is
+    # not here: it matched "UX Researcher" and "Market Researcher". An AI
+    # researcher title names its field, and the compositional rule in fit.py
+    # catches the ones this list does not.
     "research scientist",
     "ai researcher",
     "ml researcher",
@@ -80,7 +76,6 @@ TARGET_ROLES = [
     "research fellow",
     "postdoctoral researcher",
     "postdoc",
-    "researcher",
     # The same jobs under the titles companies actually post them as.
     "machine learning scientist",
     "applied scientist",
@@ -97,7 +92,6 @@ TARGET_ROLES = [
     "applied ai engineer",
     "ai/ml engineer",
     "ml research engineer",
-    "vision engineer",
     "nlp engineer",
     "mlops engineer",
     "ai research engineer",
@@ -107,7 +101,6 @@ TARGET_ROLES = [
 ]
 
 PROFILE = {
-    "years": YEARS,
     "roles": TARGET_ROLES,
     # The work itself — drawn from the portfolio's actual centre of gravity:
     # classical CV (43 projects), NLP (23), ML (20), agents (11), RAG (8).
@@ -135,7 +128,6 @@ PROFILE = {
     ],
 }
 
-# Where you are, which decides the timezone arithmetic and why the work
-# authorisation filter matters at all.
-BASED_IN = "Pakistan"
-TZ_OFFSET = 5.0   # PKT, UTC+5, no DST
+# Your UTC offset. The timezone badge measures a 09:00-18:00 day here against
+# the employer's; PKT is UTC+5 with no daylight saving.
+TZ_OFFSET = 5.0

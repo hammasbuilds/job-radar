@@ -15,7 +15,7 @@ the postings this project exists to kill through the net.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..posting import Posting, clean
 from .http import get_json
@@ -30,7 +30,7 @@ def _when(ms: int | None) -> datetime | None:
     if not ms:
         return None
     try:
-        return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+        return datetime.fromtimestamp(ms / 1000, tz=UTC)
     except (ValueError, OSError, TypeError):
         return None
 

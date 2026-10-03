@@ -18,14 +18,13 @@ from __future__ import annotations
 
 import argparse
 import webbrowser
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-
-from functools import lru_cache
 
 from . import gap, inventory, pipeline, store
 
@@ -56,7 +55,7 @@ def section(name: str) -> JSONResponse:
         return JSONResponse({"error": "unknown section"}, status_code=404)
     return JSONResponse({
         "postings": store.section(name, limit=200),
-        "total": len(store.section(name, per_company=999, limit=999)),
+        "total": store.section_total(name),
     })
 
 
@@ -120,7 +119,12 @@ def applied(posting_id: str, body: Applied) -> JSONResponse:
     The note is explicit that this is the one part that should not be
     automated, so this endpoint exists only because a human clicks it.
     """
-    store.set_application(posting_id, body.state, body.noted)
+    try:
+        store.set_application(posting_id, body.state, body.noted)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=422)
+    except KeyError:
+        return JSONResponse({"error": "unknown posting"}, status_code=404)
     return JSONResponse({"ok": True})
 
 

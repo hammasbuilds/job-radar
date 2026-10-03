@@ -9,7 +9,7 @@ moves it.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -26,7 +26,7 @@ def make(company="Acme", title="ML Engineer", url=None, score=0.7, section="remo
     posting = Posting(
         source="greenhouse", company=company, title=title, location="Anywhere",
         url=url or f"https://example.com/{company}/{title}".replace(" ", "-"),
-        text="body", posted=datetime.now(timezone.utc),
+        text="body", posted=datetime.now(UTC),
     )
     posting.score = score
     posting.section = section
@@ -180,7 +180,8 @@ def test_every_declared_section_has_a_working_endpoint():
     AttributeError on pipeline.SECTIONS while the page still rendered and
     the tabs simply showed nothing.
     """
-    from jobradar import api, pipeline as pl
+    from jobradar import api
+    from jobradar import pipeline as pl
 
     for name in pl.SECTIONS:
         assert api.section(name).status_code == 200, name

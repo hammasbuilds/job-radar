@@ -132,7 +132,7 @@ def regions_of(location: str) -> set[str]:
     a company writing EMEA almost always means a European office.
     """
     found: set[str] = set()
-    for token in _tokens(location):
+    for token in tokens(location):
         if token in _FILLER:
             continue
         if token in _REGION_WORDS:
@@ -176,7 +176,31 @@ _SPLIT = re.compile(r"\s*(?:,|/|\||;|\bor\b|\band\b|·|—|–|\s-\s)\s*")
 _PARENS = re.compile(r"\(([^)]*)\)")
 
 
-def _tokens(location: str) -> list[str]:
+# "City, ST" is the US way of writing a place, and it has to be read before the
+# city is looked up: "Cambridge, MA" is Massachusetts, not the UK, and it put
+# a US biotech role in the Europe tab. The two-letter code is only trusted
+# directly after a comma-separated name, where nothing else uses one.
+_US_STATES = ["al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id", "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms", "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok", "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv", "wi", "wy", "dc"]
+_CITY_STATE = re.compile(rf"\b([a-z][a-z .'-]*?),\s*(?:{'|'.join(_US_STATES)})\b(?!\s*[a-z])")
+# Cities that exist on both sides of the Atlantic. Any other city this module
+# already knows keeps its country, so "Berlin, DE" stays in Germany rather
+# than moving to Delaware.
+_TWIN_CITIES = {"cambridge", "manchester", "birmingham", "athens", "paris", "dublin"}
+
+
+def _city_state(match: re.Match) -> str:
+    city = match.group(1).strip()
+    known = CITY_COUNTRY.get(city)
+    if known and known != "usa" and city not in _TWIN_CITIES:
+        return match.group(0)
+    return "usa"
+_US_STATE_NAMES = re.compile(
+    r"\b(?:california|massachusetts|texas|colorado|illinois|oregon|pennsylvania|"
+    r"new jersey|north carolina|virginia|florida|minnesota|michigan|ohio|utah|"
+    r"arizona|maryland|connecticut|tennessee|missouri|wisconsin)\b")
+
+
+def tokens(location: str) -> list[str]:
     """Split a location string into comparable place tokens.
 
     A parenthetical is pulled out first and treated as its own token, because
@@ -186,6 +210,8 @@ def _tokens(location: str) -> list[str]:
     text = (location or "").strip().lower()
     if not text:
         return []
+    text = _CITY_STATE.sub(_city_state, text)
+    text = _US_STATE_NAMES.sub("usa", text)
     inner = _PARENS.findall(text)
     text = _PARENS.sub(" ", text)
     parts = _SPLIT.split(text) + [p for chunk in inner for p in _SPLIT.split(chunk)]
@@ -208,15 +234,15 @@ def _trim(part: str) -> str:
 
 def classify(location: str) -> tuple[str, str]:
     """(scope, reason). UNKNOWN when the string cannot be read confidently."""
-    tokens = _tokens(location)
-    if not tokens:
+    parts = tokens(location)
+    if not parts:
         return UNKNOWN, "no location given"
 
     countries: set[str] = set()
     regions: set[str] = set()
     unknown: list[str] = []
 
-    for token in tokens:
+    for token in parts:
         if token in _FILLER:
             continue
         if token in GLOBAL_WORDS:

@@ -18,6 +18,16 @@ similarity score. Two different companies are never merged however identical
 their postings, because identical postings across companies are *normal* — the
 same recruiter template, the same JD bought from the same agency.
 
+**Seniority and place are part of what a job is.** An earlier version
+stripped "senior", "junior", "lead" and every place name from the title
+before comparing, so a Senior and a Junior ML Engineer at one company became
+one row - and the one that survived was the Senior, which was then killed,
+silently taking the junior role with it. "Research Scientist (Zurich)" and
+"Research Scientist (Remote, Worldwide)" became one row too, and it was the
+Zurich one. Only words that carry no identity at all (gender markers,
+full-time/part-time) are dropped now, and two postings must name the same
+places to merge.
+
 Which copy survives matters: the ATS copy wins. It carries the full
 description, and every filter in this project reads prose.
 """
@@ -26,33 +36,28 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
 
-_EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+from .filters import places
+
+_EPOCH = datetime.min.replace(tzinfo=UTC)
+
+# "Same company, same title, two boards, within a week - one job."
+WINDOW = timedelta(days=7)
 
 # The ATS boards originate postings; the aggregators mirror them, sometimes
 # with the description truncated. Higher wins.
-PRIORITY = {"greenhouse": 3, "lever": 3, "arbeitnow": 2, "remotive": 2}
+PRIORITY = {
+    "greenhouse": 3, "lever": 3, "ashby": 3, "smartrecruiters": 3, "workable": 3,
+    "recruitee": 3, "personio": 3,
+    "arbeitnow": 2, "remotive": 2, "himalayas": 2, "jobicy": 2, "remoteok": 2,
+    "themuse": 2, "mustakbil": 2,
+}
 
+# Words that never distinguish one job from another.
 _NOISE = re.compile(
-    r"\b(?:senior|sr|junior|jr|lead|staff|principal|mid|m/f/d|m/w/d|f/m/d|"
-    r"all genders|remote|hybrid|onsite|full[- ]time|part[- ]time|contract|"
-    r"permanent|freelance|b2b|eu|emea|europe)\b"
-)
-
-# A role advertised in three countries carries the country in its title:
-#   "Machine Learning Fellow - Human Frontier Collective (Canada)"
-#   "Machine Learning Fellow - Human Frontier Collective (UK)"
-# Those are one job with three apply links, and leaving the country in the
-# identity key put all three on the dashboard as separate rows. The location
-# is not part of what the job *is*, which is the same reason seniority is
-# stripped above.
-_PLACE = re.compile(
-    r"\b(?:usa?|united states|uk|united kingdom|canada|ireland|germany|france|"
-    r"spain|portugal|poland|netherlands|belgium|sweden|denmark|norway|finland|"
-    r"italy|austria|switzerland|romania|india|apac|latam|amer|north america|"
-    r"london|berlin|paris|madrid|lisbon|amsterdam|dublin|munich|warsaw|"
-    r"stockholm|copenhagen|zurich|milan|barcelona|remote)\b"
+    r"\b(?:m/f/d|m/w/d|f/m/d|w/m/d|m/f/x|all genders|f/m/x|"
+    r"full[- ]time|part[- ]time|permanent)\b"
 )
 _PUNCT = re.compile(r"[^a-z0-9 ]+")
 _WS = re.compile(r"\s+")
@@ -61,7 +66,7 @@ _WS = re.compile(r"\s+")
 def company_key(name: str) -> str:
     """Normalised company name.
 
-    Legal suffixes and spacing differ between sources for the same firm —
+    Legal suffixes and spacing differ between sources for the same firm -
     "Vivid Money GmbH" on one board, "Vivid" on another. Without this the hard
     barrier stops working precisely where it is needed, and the same company's
     duplicate postings survive into the dashboard.
@@ -78,31 +83,55 @@ def company_key(name: str) -> str:
 
 
 def title_key(title: str) -> str:
-    """Title with seniority and arrangement words removed.
-
-    'Senior ML Engineer (Remote, m/f/d)' and 'ML Engineer' at the same company
-    in the same week are one job advertised twice, and the words that differ
-    are exactly the ones that carry no identity.
-    """
-    title = (title or "").lower()
-    # Drop a trailing parenthetical before punctuation is flattened, so
-    # "Engineer (Canada)" and "Engineer (UK)" reduce to the same thing.
-    title = re.sub(r"\([^)]*\)", " ", title)
+    """Title with only identity-free words removed. Seniority and place stay."""
+    title = _NOISE.sub(" ", (title or "").lower())
     title = _PUNCT.sub(" ", title)
-    title = _NOISE.sub(" ", title)
-    title = _PLACE.sub(" ", title)
     return _WS.sub(" ", title).strip()
+
+
+def place_key(location: str) -> str:
+    """The countries and regions a location names, order-free.
+
+    "Berlin" and "Berlin, Germany" are the same place on two boards; "Zurich"
+    and "Remote, Worldwide" are not. An unreadable location keys as itself.
+    """
+    tokens = []
+    for token in places.tokens(location):
+        if token in places.GLOBAL_WORDS:
+            tokens.append("global")
+        elif token in places.COUNTRIES or token in places.REGIONS:
+            tokens.append(token)
+        elif token in places.CITY_COUNTRY:
+            tokens.append(places.CITY_COUNTRY[token])
+    return ",".join(sorted(set(tokens))) or _WS.sub(" ", (location or "").lower()).strip()
+
+
+def _within_a_week(members: list) -> list[list]:
+    """Split one (company, title, place) group wherever postings are more than
+    a week apart. Postings without a date join the cluster they sort next to."""
+    ordered = sorted(members, key=lambda p: p.posted or _EPOCH)
+    clusters: list[list] = []
+    last = None
+    for posting in ordered:
+        when = posting.posted
+        if clusters and (when is None or last is None or when - last <= WINDOW):
+            clusters[-1].append(posting)
+        else:
+            clusters.append([posting])
+        if when is not None:
+            last = when
+    return clusters
 
 
 def deduplicate(postings: list) -> tuple[list, int]:
     """Collapse duplicates. Returns (kept, number removed).
 
-    Grouping is by (company, title) only — no text similarity anywhere. The
-    87% error rate that comms-desk measured came from letting text similarity
-    decide, and nothing here gives it the chance.
+    Grouping is by (company, title, places) and a one-week window - no text
+    similarity anywhere. The 87% error rate that comms-desk measured came
+    from letting text similarity decide, and nothing here gives it the chance.
     """
-    groups: dict[tuple[str, str], list] = defaultdict(list)
-    singles = []
+    groups: dict[tuple[str, str, str], list] = defaultdict(list)
+    kept = []
 
     for posting in postings:
         company = company_key(posting.company)
@@ -110,22 +139,19 @@ def deduplicate(postings: list) -> tuple[list, int]:
         if not company or not title:
             # Without both halves the barrier cannot be applied, and merging
             # on a missing key would merge unrelated jobs. Keep it whole.
-            singles.append(posting)
+            kept.append(posting)
             continue
-        groups[(company, title)].append(posting)
+        groups[(company, title, place_key(posting.location))].append(posting)
 
-    kept = list(singles)
     removed = 0
     for members in groups.values():
-        if len(members) == 1:
-            kept.append(members[0])
-            continue
-        # Prefer the originating board; among equals prefer the longest
-        # description, because a truncated copy loses the filters' evidence.
-        best = max(
-            members,
-            key=lambda p: (PRIORITY.get(p.source, 0), len(p.text), p.posted or _EPOCH),
-        )
-        kept.append(best)
-        removed += len(members) - 1
+        for cluster in _within_a_week(members):
+            # Prefer the originating board; among equals prefer the longest
+            # description, because a truncated copy loses the filters' evidence.
+            best = max(
+                cluster,
+                key=lambda p: (PRIORITY.get(p.source, 0), len(p.text), p.posted or _EPOCH),
+            )
+            kept.append(best)
+            removed += len(cluster) - 1
     return kept, removed

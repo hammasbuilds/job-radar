@@ -275,10 +275,15 @@ def test_company_history_is_not_a_requirement():
     assert seniority.years_required("Founded 8 years ago, a team of 50.") is None
 
 
-def test_the_lowest_bar_stated_is_the_one_that_counts():
-    """A description often states a requirement and then a wish. Rejecting on
-    the wish throws away a job the candidate is qualified for."""
+def test_the_highest_required_bar_counts_and_a_wish_does_not():
+    """Every required mention is a bar to clear, so the highest is the bar;
+    the minimum let "5+ years, including 2+ with LLMs" through as 2. A number
+    in a nice-to-have sentence is a wish and is ignored either way."""
     text = "8 years of experience required; 3 years with Python preferred"
+    assert seniority.years_required(text) == 8
+    text = "5+ years of software engineering, including 2+ years with LLMs."
+    assert seniority.years_required(text) == 5
+    text = "3 years of experience required. 8 years would be preferred."
     assert seniority.years_required(text) == 3
 
 

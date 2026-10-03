@@ -22,7 +22,7 @@ the source.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..posting import Posting, clean
 from .http import get_json
@@ -45,7 +45,7 @@ HN_ITEM = "https://hn.algolia.com/api/v1/items/{id}"
 
 def _epoch(value) -> datetime | None:
     try:
-        return datetime.fromtimestamp(int(value), tz=timezone.utc)
+        return datetime.fromtimestamp(int(value), tz=UTC)
     except (TypeError, ValueError, OSError):
         return None
 
@@ -55,7 +55,7 @@ def _iso(value) -> datetime | None:
         return None
     try:
         stamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
+        return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
     except ValueError:
         return None
 
@@ -165,14 +165,140 @@ def themuse(pages: int = 3, **kw) -> list[Posting]:
 
 _HN_COMPANY = re.compile(r"^\s*([^|\n]{2,60}?)\s*[|•·—-]", re.M)
 
+# A word that makes a phrase a job title. Deliberately wider than the target
+# roles: every role in a post must become its own posting so the ones that
+# are not wanted are killed *as themselves*, not mixed into the one that is.
+_ROLE_WORD = re.compile(
+    r"\b(?:engineers?|scientists?|researchers?|developers?|designers?|managers?|"
+    r"architects?|analysts?|leads?|directors?|head of|interns?|recruiters?|"
+    r"specialists?|sre|devops|mlops|cto|vp|consultants?|writers?|technicians?|"
+    r"operators?|founding|fellows?|associates?|administrators?|representatives?|"
+    r"executives?|advocates?|strategists?|coordinators?|programmers?|swes?)\b",
+    re.I,
+)
+_PROSE = re.compile(
+    r"\b(?:we|we're|we've|our|you|you'll|your|i'm|i've|my|me|looking|"
+    r"hiring|join|build|help|is|are|was|will)\b", re.I)
+_URL = re.compile(r"https?://\S+|\b[\w-]+\.(?:com|io|ai|co|org|dev|app|net)\b\S*", re.I)
+_BULLET = re.compile(r"^\s*(?:[-*•·◦▪>]|\d{1,2}[.)])\s*")
+_MONEY = re.compile(r"[$€£]|\b\d+\s*k\b|\bequity\b|\bsalary\b", re.I)
+MAX_ROLES = 12
+
+
+_SEPARATOR = re.compile(r"\s*(?:,|;|&|\+|\band\b|\bor\b)\s*", re.I)
+
+
+def _split_outside_parens(field: str) -> list[tuple[str, str]]:
+    """Split on separators that sit outside parentheses. Returns (part, the
+    separator that followed it), so a part can be glued back as written."""
+    parts: list[tuple[str, str]] = []
+    depth, start, i = 0, 0, 0
+    while i < len(field):
+        ch = field[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+        elif depth == 0:
+            sep = _SEPARATOR.match(field, i)
+            if sep and sep.end() > i and (field[i] in ",;&+" or field[i].isspace()):
+                parts.append((field[start:i], sep.group(0)))
+                start = i = sep.end()
+                continue
+        i += 1
+    parts.append((field[start:], ""))
+    return parts
+
+
+def _role_parts(field: str) -> list[str]:
+    """One header field to its roles.
+
+    "ML Engineer, Backend Engineer" is two; "Research Engineer, Pre-training"
+    is one, because the part after the comma names no role and is glued back
+    onto the one before it; "Backend & Cloud Platform Engineer" is one, because
+    a leading part with no role word is glued onto the next. Separators inside
+    parentheses never split: "Software Engineer (Autonomy, Perception)".
+    """
+    roles: list[str] = []
+    prefix = ""
+    for part, sep in _split_outside_parens(field):
+        part = part.strip(" -–—:")
+        if not part:
+            continue
+        if _ROLE_WORD.search(part):
+            roles.append(prefix + part)
+            prefix = ""
+        elif roles and not prefix:
+            roles[-1] = f"{roles[-1]}, {part}"
+        else:
+            prefix += part + (sep if sep.strip() else " ")
+    return roles
+
+
+def hn_roles(body: str) -> tuple[str, list[str], str]:
+    """(company, role titles, location) from one "Who is hiring" comment.
+
+    The convention is `Company | Role | Location | Remote | VISA`, loosely
+    kept: several roles in one field, roles listed as bullets further down,
+    or no header at all. The first version took the first 160 characters as
+    the title, so the level and role filters read *other* roles and prose -
+    Sourcegraph's "Agent Engineer" was killed as "lead" because "Tech Lead"
+    was also listed, and Whistle Robotics as "executive" from "I'm Gio, CTO".
+    """
+    lines = [ln.strip() for ln in body.split("\n") if ln.strip()]
+    header = lines[0] if lines else ""
+    fields = [f.strip() for f in header.split("|")] if "|" in header else [header]
+
+    found = _HN_COMPANY.search(body)
+    if len(fields) > 1:
+        company = fields[0]
+    elif found and not _PROSE.search(found.group(1)):
+        company = found.group(1)
+    else:
+        company = ""
+    company = company.strip()
+    company = _URL.sub("", company).strip(" -–—,") or "(unnamed, HN thread)"
+
+    roles: list[str] = []
+    places: list[str] = []
+    for field in fields[1:]:
+        text = _URL.sub("", field).strip()
+        if not text:
+            continue
+        parts = _role_parts(text) if not _PROSE.search(text) else []
+        if parts:
+            roles += parts
+        elif len(text) <= 60 and not _MONEY.search(text) and not _PROSE.search(text):
+            places.append(text)
+
+    for line in lines[1:]:
+        text = _URL.sub("", line).strip(" -–—:")
+        bulleted = bool(_BULLET.match(line))
+        text = _BULLET.sub("", text).strip()
+        if not text or not _ROLE_WORD.search(text) or _PROSE.search(text):
+            continue
+        short = len(text) <= 60 and len(text.split()) <= 8 and not text.endswith(".")
+        if (bulleted and len(text) <= 100) or short:
+            roles.append(text.split(" - ")[0].strip())
+
+    seen: set[str] = set()
+    unique = []
+    for role in roles:
+        key = role.lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(role[:120])
+    return company[:80], unique[:MAX_ROLES], ", ".join(places)[:200]
+
 
 def hacker_news(**kw) -> list[Posting]:
-    """The monthly "Ask HN: Who is hiring" thread.
+    """The monthly "Ask HN: Who is hiring" thread, one posting per role.
 
-    Each top-level comment is one company's posting, conventionally written
-    as `Company | Role | Location | Remote`. The convention is loose enough
-    that only the first field is reliable, so the company is parsed and the
-    whole comment is kept as the text for the filters to read.
+    Each top-level comment is one company's post and often several roles.
+    Each role becomes its own posting sharing the comment's text, so the
+    level and role filters judge the role's own title. A comment naming no
+    recognisable role still becomes one posting, titled with its header, and
+    is judged (and usually killed) on that.
 
     Worth having because YC founders post here and many of those roles appear
     nowhere else.
@@ -181,8 +307,8 @@ def hacker_news(**kw) -> list[Posting]:
     if not threads or not threads.get("hits"):
         return []
 
-    # The account posts three threads a month — hiring, wants to be hired and
-    # freelancer — so the newest story is not necessarily the hiring one.
+    # The account posts three threads a month - hiring, wants to be hired and
+    # freelancer - so the newest story is not necessarily the hiring one.
     hiring = [h for h in threads["hits"]
               if "who is hiring" in (h.get("title") or "").lower()
               and "wants to be hired" not in (h.get("title") or "").lower()]
@@ -196,18 +322,23 @@ def hacker_news(**kw) -> list[Posting]:
             body = clean(comment.get("text"))
             if not body or len(body) < 60:
                 continue
-            found = _HN_COMPANY.search(body)
-            company = found.group(1).strip() if found else "(unnamed, HN thread)"
-            head = body.split("\n")[0][:160]
-            out.append(
-                Posting(
-                    source="hn",
-                    company=company,
-                    title=head,
-                    location="",
-                    url=f"https://news.ycombinator.com/item?id={comment.get('id')}",
-                    text=body,
-                    posted=_iso(comment.get("created_at")),
+            company, roles, where = hn_roles(body)
+            url = f"https://news.ycombinator.com/item?id={comment.get('id')}"
+            header = body.split("\n")[0]
+            titles = roles or [header.split("|", 1)[-1].strip()[:120] or header[:120]]
+            for title in titles:
+                slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:60]
+                out.append(
+                    Posting(
+                        source="hn",
+                        company=company,
+                        title=title,
+                        location=where,
+                        # One comment, several roles: the fragment keeps each
+                        # role's identity apart in the store.
+                        url=url if len(titles) == 1 else f"{url}#{slug}",
+                        text=body,
+                        posted=_iso(comment.get("created_at")),
+                    )
                 )
-            )
     return out

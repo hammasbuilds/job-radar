@@ -10,7 +10,7 @@ filter in this project has nothing to read.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..posting import Posting, clean
 from .http import get_json
@@ -23,7 +23,7 @@ def _when(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(UTC)
     except ValueError:
         return None
 
@@ -35,7 +35,8 @@ def fetch(slug: str, company: str | None = None, **kw) -> list[Posting]:
 
     out = []
     for job in payload["jobs"]:
-        # Greenhouse double-escapes the content field.
+        # Greenhouse sends the content field entity-escaped ("&lt;p&gt;");
+        # `clean` decodes that before stripping tags.
         body = clean(job.get("content", ""))
         out.append(
             Posting(

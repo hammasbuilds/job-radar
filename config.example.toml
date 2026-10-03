@@ -1,0 +1,12 @@
+# Personal settings for job-radar. Copy to config.toml (gitignored) and edit.
+# Every key is optional; delete a line to fall back to the default.
+
+# Sent in the User-Agent to every job board, so an operator can reach
+# whoever is polling them. Leave empty to send no address.
+contact_email = "you@example.com"
+
+# The portfolio index whose "**Stack:**" lines prove skills in the gap report.
+projects_md = "D:/github/PROJECTS.md"
+
+# Your CV (.docx preferred; .pdf is read crudely). Nothing is searched for.
+cv_path = "~/Documents/CV.docx"

@@ -25,14 +25,23 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from functools import lru_cache
 from pathlib import Path
 
-CACHE = Path(__file__).resolve().parents[3] / "data" / "cache"
+from .. import config
 
-# A real contact address rather than a browser string. SEC EDGAR requires one,
-# several ATS providers ask for it in their terms, and a tool that pretends to
-# be Chrome while hitting a public API is starting a fight it does not need.
-UA = "job-radar/0.1 (personal job search tool; jigglybear157@gmail.com)"
+
+@lru_cache(maxsize=1)
+def user_agent() -> str:
+    """An honest User-Agent, with a contact address only if one is configured.
+
+    Several ATS providers ask for a way to reach whoever is polling them, and
+    a tool that pretends to be Chrome while hitting a public API is starting
+    a fight it does not need. The address comes from `config.toml`, never
+    from the code, so a clone does not send somebody else's email.
+    """
+    email = config.load().contact_email
+    return f"job-radar/0.1 (personal job search tool{'; ' + email if email else ''})"
 
 TIMEOUT = 30.0
 RETRIES = 3
@@ -44,7 +53,7 @@ class SourceError(RuntimeError):
 
 
 def _slot(url: str) -> Path:
-    return CACHE / f"{hashlib.blake2b(url.encode(), digest_size=10).hexdigest()}.json.gz"
+    return config.cache_dir() / f"{hashlib.blake2b(url.encode(), digest_size=10).hexdigest()}.json.gz"
 
 
 def get_text(url: str, *, max_age: float = 6 * 3600, cache: bool = True) -> str | None:
@@ -77,10 +86,16 @@ def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
     # Workable's listing is a POST with an empty body; without this it would
     # read a GET's cached failure and return nothing forever.
     slot = _slot(f"{method}:{url}:{(body or b'').decode('utf-8', 'replace')}")
-    if cache and slot.exists() and time.time() - slot.stat().st_mtime < max_age:
+    # Offline mode replays whatever is cached, however old, and never touches
+    # the network. It is how a crawl is reproduced exactly: the same bytes in
+    # give the same funnel out, which a live crawl never can.
+    offline = config.offline()
+    if cache and slot.exists() and (offline or time.time() - slot.stat().st_mtime < max_age):
         with gzip.open(slot, "rt", encoding="utf-8") as handle:
             raw = handle.read()
         return json.loads(raw) if parse else raw
+    if offline:
+        raise SourceError(f"{url}: not in the cache (offline mode)")
 
     # A seed list is hand-written and will contain a slug with a space or an
     # accent in it. urllib raises InvalidURL for those, which is not an
@@ -92,7 +107,7 @@ def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
     last: Exception | None = None
     for attempt in range(RETRIES):
         try:
-            headers = {"User-Agent": UA}
+            headers = {"User-Agent": user_agent()}
             if body is not None:
                 headers["Content-Type"] = "application/json"
             request = urllib.request.Request(
@@ -102,7 +117,7 @@ def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
                 text = response.read().decode("utf-8", "replace")
             payload = json.loads(text) if parse else text
             if cache:
-                CACHE.mkdir(parents=True, exist_ok=True)
+                slot.parent.mkdir(parents=True, exist_ok=True)
                 with gzip.open(slot, "wt", encoding="utf-8") as handle:
                     handle.write(text)
             return payload
@@ -122,6 +137,3 @@ def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
                 time.sleep(BACKOFF**attempt)
     raise SourceError(f"{url}: {last}")
 
-
-def cached_urls() -> int:
-    return len(list(CACHE.glob("*.json.gz"))) if CACHE.exists() else 0

@@ -23,7 +23,7 @@ caught costs the profile you are building.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..posting import Posting
 from .http import get_json
@@ -73,8 +73,8 @@ class YCCompany:
     def age_days(self) -> int | None:
         if not self.launched_at:
             return None
-        launched = datetime.fromtimestamp(self.launched_at, tz=timezone.utc)
-        return (datetime.now(timezone.utc) - launched).days
+        launched = datetime.fromtimestamp(self.launched_at, tz=UTC)
+        return (datetime.now(UTC) - launched).days
 
     @property
     def age_bucket(self) -> str:

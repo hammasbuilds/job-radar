@@ -30,13 +30,17 @@ from jobradar.sources import yc  # noqa: E402
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--all", action="store_true",
                         help="every hiring company, not just AI-tagged ones")
     parser.add_argument("--new-only", action="store_true",
                         help="only companies launched within the last year")
-    parser.add_argument("--workers", type=int, default=8)
-    parser.add_argument("--fresh", action="store_true")
+    parser.add_argument("--workers", type=int, default=8,
+                        help="boards resolved in parallel (default 8)")
+    parser.add_argument("--fresh", action="store_true",
+                        help="ignore the HTTP cache and ask every board again")
     parser.add_argument(
         "--if-older-than", type=float, default=None, metavar="HOURS",
         help="skip entirely when the stored directory is newer than this",
@@ -49,14 +53,14 @@ def main() -> None:
     if args.if_older_than is not None:
         age = store.yc_age_hours()
         if age is not None and age < args.if_older_than:
-            print(f"YC directory is {age:.1f}h old — still current, skipping.")
+            print(f"YC directory is {age:.1f}h old - still current, skipping.")
             print("Force a refresh with: python scripts/fetch_yc.py --fresh")
             return
 
     kw = {"max_age": 0.0} if args.fresh else {}
     companies = yc.hiring(ai_only=not args.all, **kw)
     if not companies:
-        raise SystemExit("YC API returned nothing — check the network")
+        raise SystemExit("YC API returned nothing - check the network")
 
     if args.new_only:
         companies = [c for c in companies if c.age_bucket]
@@ -64,7 +68,7 @@ def main() -> None:
     print(f"{len(companies)} YC companies listed as hiring"
           f"{' (AI-tagged)' if not args.all else ''}"
           f"{' launched within a year' if args.new_only else ''}")
-    print("resolving boards — up to two requests each…\n")
+    print("resolving boards - up to two requests each...\n")
 
     started = time.time()
 
@@ -80,7 +84,7 @@ def main() -> None:
 
     print(f"{len(with_board)} of {len(companies)} have a readable board "
           f"({jobs:,} open roles) in {time.time() - started:.0f}s")
-    print("The rest hire through a form or an email and are kept anyway —")
+    print("The rest hire through a form or an email and are kept anyway -")
     print("funded, hiring and reachable is worth knowing without a board.\n")
 
     for name, _, label in yc.BUCKETS:
@@ -92,9 +96,12 @@ def main() -> None:
           f"{sum(len(c.jobs) for c in established):>5} roles")
 
     store.save_yc(companies)
-    print(f"\nstored in {store.DB}")
+    print(f"\nstored in {store.db_path()}")
     print("open the YC tab in the dashboard")
 
 
 if __name__ == "__main__":
+    # A Windows console defaults to the ANSI code page; the output has arrows and ellipses.
+    for _stream in (sys.stdout, sys.stderr):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
     main()

@@ -223,6 +223,11 @@ async function loadMarket() {
   const run = data.run;
   if (!run) { $("funnel").textContent = "No run recorded yet."; return; }
   const f = run.funnel || {};
+  if (f.lines) {
+    // Rendered by the pipeline itself, in stage order.
+    $("funnel").textContent = f.lines.join("\n") + "\n\nlast run: " + run.at;
+    return;
+  }
   const lines = [];
   lines.push(String(run.fetched).padStart(9) + "  fetched");
   const dedup = f.after_dedup ?? run.fetched;

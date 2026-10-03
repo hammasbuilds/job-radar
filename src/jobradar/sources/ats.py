@@ -27,7 +27,7 @@ sources that matter.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..posting import Posting, clean
 from .http import get_json, get_text
@@ -45,12 +45,12 @@ def _when(value) -> datetime | None:
     if isinstance(value, (int, float)):
         try:
             return datetime.fromtimestamp(value / (1000 if value > 1e11 else 1),
-                                          tz=timezone.utc)
+                                          tz=UTC)
         except (ValueError, OSError):
             return None
     try:
         stamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
+        return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
     except ValueError:
         return None
 

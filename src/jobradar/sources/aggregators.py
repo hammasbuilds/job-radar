@@ -17,7 +17,7 @@ plainly that a Pakistan-based applicant is out, and it costs nothing to read.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..posting import Posting, clean
 from .http import get_json
@@ -28,7 +28,7 @@ REMOTIVE = "https://remotive.com/api/remote-jobs"
 
 def _epoch(value) -> datetime | None:
     try:
-        return datetime.fromtimestamp(int(value), tz=timezone.utc)
+        return datetime.fromtimestamp(int(value), tz=UTC)
     except (TypeError, ValueError, OSError):
         return None
 
@@ -38,7 +38,7 @@ def _iso(value: str | None) -> datetime | None:
         return None
     try:
         stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
+        return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
     except ValueError:
         return None
 

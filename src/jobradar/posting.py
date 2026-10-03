@@ -19,20 +19,19 @@ That is the entire reason this tool needs to read job text at all.
 from __future__ import annotations
 
 import hashlib
+import html
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 _TAG = re.compile(r"<[^>]+>")
-_WS = re.compile(r"[ \t\r\f\v]+")
-_ENTITY = {
-    "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'",
-    "&nbsp;": " ", "&rsquo;": "'", "&ldquo;": '"', "&rdquo;": '"', "&mdash;": "—",
-    "&ndash;": "–", "&hellip;": "…",
-}
+_BLOCK = re.compile(r"(?i)<(?:br|/p|/li|li|/div|/h[1-6]|/tr|/ul|/ol)\b[^>]*>")
+_INVISIBLE = re.compile(r"(?is)<(script|style|template)\b.*?</\1\s*>")
+_WS = re.compile(r"[ \t\r\f\v\u00a0]+")
 
 
-def clean(html: str | None) -> str:
+def clean(markup: str | None) -> str:
     """HTML to readable text. Deliberately not a parser.
 
     Job descriptions are simple documents and a real parser is a dependency
@@ -40,29 +39,65 @@ def clean(html: str | None) -> str:
     "Remote</li><li>Germany" does not become the single token
     "RemoteGermany" — which would make a location phrase match on text that
     never contained it.
+
+    **Entity-escaped markup is decoded before tags are stripped.** Greenhouse
+    sends its content field escaped (`&lt;p&gt;6+ years&lt;/p&gt;`). Stripping
+    tags first found none, then decoding turned the entities into real tags,
+    so every Greenhouse posting — 7,069 of 9,755 in the 2026-09-23 corpus —
+    was filtered and stored as markup. A body that contains escaped tags and
+    no real ones is unescaped once up front; everything else is unescaped
+    once, after the tags are gone, which is also how "&#x2F;" in Hacker News
+    comments becomes a slash.
     """
-    if not html:
+    if not markup:
         return ""
-    text = re.sub(r"(?i)<(br|/p|/li|/div|/h[1-6]|/tr)[^>]*>", "\n", html)
+    text = markup
+    if "&lt;" in text and not _TAG.search(text):
+        text = html.unescape(text)
+    text = _INVISIBLE.sub(" ", text)
+    text = _BLOCK.sub("\n", text)
     text = _TAG.sub(" ", text)
-    for entity, char in _ENTITY.items():
-        text = text.replace(entity, char)
-
-    # Numeric entities, decimal and hex. Hex was missing and Hacker News uses
-    # it heavily: every slash in a posting arrived as "&#x2F;", so a title read
-    # "Remote, PT&#x2F;ET hours" and a location phrase that spanned a slash
-    # never matched.
-    def _char(match: re.Match) -> str:
-        body = match.group(1)
-        try:
-            code = int(body[1:], 16) if body[:1].lower() == "x" else int(body)
-        except ValueError:
-            return " "
-        return chr(code) if 0 < code < 0x110000 else " "
-
-    text = re.sub(r"&#(x[0-9a-fA-F]+|\d+);", _char, text)
+    text = html.unescape(text)
     text = _WS.sub(" ", text)
-    return re.sub(r"\n\s*\n+", "\n\n", text).strip()
+    text = re.sub(r" *\n *", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+# Query parameters that say how someone arrived, not which job it is. Every
+# other parameter is kept, because on several boards the job id lives only in
+# the query string: Databricks and Stripe (`?gh_jid=N`), and every Hacker News
+# comment (`item?id=N`).
+_TRACKING = re.compile(
+    r"^(?:utm_\w+|gh_src|src|source|ref|referrer|lever-source(?:\[\])?|"
+    r"lever-origin|fbclid|gclid|mc_cid|mc_eid|trk|trackingid)$",
+    re.I,
+)
+
+
+def identity(url: str) -> str:
+    """The part of a URL that names one job.
+
+    Scheme and host are case-folded and a trailing slash dropped; tracking
+    parameters are removed and the rest are sorted. The job id is *never*
+    dropped, wherever it lives. An earlier version cut everything after "?",
+    which merged 2,253 of 9,755 postings into six database rows and grafted
+    one job's verdict onto another's title.
+    """
+    parts = urlsplit((url or "").strip())
+    query = sorted(
+        (k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if not _TRACKING.match(k)
+    )
+    return urlunsplit((
+        parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"),
+        urlencode(query), parts.fragment,
+    ))
+
+
+def key_for(url: str, fallback: str = "") -> str:
+    """Hash of `identity(url)`; `fallback` identifies a posting with no URL."""
+    ident = identity(url) or f"no-url:{fallback}"
+    return hashlib.blake2b(ident.encode(), digest_size=12).hexdigest()
 
 
 @dataclass
@@ -109,12 +144,12 @@ class Posting:
     def key(self) -> str:
         """Stable identity for a posting, used for 'new since last run'.
 
-        The URL is the natural key and is stable on every source here. It is
-        hashed rather than stored raw so the id column has a fixed width and
-        two postings cannot differ only by a tracking parameter.
+        The URL with its job id, whether the id sits in the path or in the
+        query string (see `identity`). A posting with no URL at all falls
+        back to its source, company, title and location, so two URL-less
+        postings never share a row.
         """
-        url = self.url.split("?")[0].rstrip("/").lower()
-        return hashlib.blake2b(url.encode(), digest_size=12).hexdigest()
+        return key_for(self.url, f"{self.source}|{self.company}|{self.title}|{self.location}")
 
     @property
     def haystack(self) -> str:
@@ -129,5 +164,5 @@ class Posting:
     def age_days(self) -> float | None:
         if not self.posted:
             return None
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (now - self.posted).total_seconds() / 86400

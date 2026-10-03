@@ -19,23 +19,45 @@ from __future__ import annotations
 
 import re
 
+from ..profile import TZ_OFFSET
+from . import rx
+
 GOOD = "good"          # substantial overlap with a PKT working day
 PARTIAL = "partial"    # some overlap, awkward
 POOR = "poor"          # nights
 ASYNC = "async"        # explicitly does not care
 UNSTATED = "unstated"
 
-# UTC offsets of the zones a posting is likely to name, and what a 09:00-18:00
-# PKT (UTC+5) day overlaps with each.
-_ZONES = {
-    r"\b(?:cet|cest|central european)\b": 1,
-    r"\b(?:eet|eest|eastern european)\b": 2,
-    r"\b(?:gmt|bst|utc|uk time|london time)\b": 0,
-    r"\b(?:ist|india standard)\b": 5.5,
-    r"\b(?:est|edt|eastern time|et)\b": -5,
-    r"\b(?:cst|cdt|central time)\b": -6,
-    r"\b(?:pst|pdt|pacific time|pt)\b": -8,
+# UTC offsets of the zones a posting is likely to name.
+#
+# Spelled-out names match in any case. **Abbreviations match only in capitals,
+# as written**, and the two-letter ones only beside a time: the first version
+# matched lower-cased text, so German "Unsere Firma ist in Berlin" read as
+# India Standard Time and "Part-time (PT)" as Pacific, on a board (Arbeitnow)
+# that is mostly German.
+_NAMED = {
+    r"\b(?:central european|cet|cest)\b": 1,
+    r"\b(?:eastern european|eet|eest)\b": 2,
+    r"\b(?:uk time|london time|greenwich)\b": 0,
+    r"\bindia standard\b": 5.5,
+    r"\beastern time\b": -5,
+    r"\bcentral time\b": -6,
+    r"\bpacific time\b": -8,
 }
+_ABBREV = {
+    r"\b(?:CET|CEST)\b": 1,
+    r"\b(?:EET|EEST)\b": 2,
+    r"\b(?:GMT|BST|UTC)\b": 0,
+    r"\bIST\b": 5.5,
+    r"\b(?:EST|EDT)\b": -5,
+    r"\b(?:CST|CDT)\b": -6,
+    r"\b(?:PST|PDT)\b": -8,
+}
+# ET / CT / PT only when a clock time or "hours"/"timezone" sits right next to it.
+_SHORT = {"ET": -5, "CT": -6, "PT": -8}
+_NEAR_TIME = re.compile(
+    r"(?:\d\s*(?:am|pm)?\s*[-–/]?\s*$|(?:hours|time\s?zone|overlap|core)\W*$)", re.I)
+_AFTER_TIME = re.compile(r"^\W{0,3}(?:hours|time|timezone|overlap|business|working)", re.I)
 
 _ASYNC = (
     r"\basync(?:hronous)?(?:[- ]first)?\b",
@@ -53,8 +75,8 @@ _CORE = (
     r"available (?:from|between) \d{1,2}[:.]?\d{0,2}\s*(?:am|pm)?",
 )
 
-PKT = 5.0
-WORKDAY = 9.0   # hours
+# The candidate's own offset, from profile.py - the one place it is set.
+PKT = TZ_OFFSET
 
 
 def _overlap(their_offset: float) -> float:
@@ -64,15 +86,35 @@ def _overlap(their_offset: float) -> float:
     return max(0.0, end - start)
 
 
+def _zones_named(original: str) -> list[tuple[str, float]]:
+    """(zone as written, UTC offset) for every zone the text names."""
+    found = []
+    for pattern, offset in _NAMED.items():
+        hit = rx(pattern, re.I).search(original)
+        if hit:
+            found.append((hit.group(0), offset))
+    for pattern, offset in _ABBREV.items():
+        hit = rx(pattern).search(original)
+        if hit:
+            found.append((hit.group(0), offset))
+    for abbrev, offset in _SHORT.items():
+        for hit in rx(rf"\b{abbrev}\b").finditer(original):
+            before = original[max(0, hit.start() - 20):hit.start()]
+            after = original[hit.end():hit.end() + 20]
+            if _NEAR_TIME.search(before) or _AFTER_TIME.search(after):
+                found.append((abbrev, offset))
+                break
+    return found
+
+
 def classify(posting) -> tuple[str, str]:
     text = posting.haystack
 
     for pattern in _ASYNC:
-        if re.search(pattern, text):
+        if rx(pattern).search(text):
             return ASYNC, "async / no core hours"
 
-    named = [(re.search(p, text), off) for p, off in _ZONES.items()]
-    named = [(m.group(0), off) for m, off in named if m]
+    named = _zones_named(f"{posting.title}\n{posting.location}\n{posting.text}")
 
     if named:
         # The best overlap among the zones named — a posting that mentions both
@@ -84,8 +126,8 @@ def classify(posting) -> tuple[str, str]:
             return GOOD, f"{zone.upper()}: ~{hours:.0f}h overlap with a PKT day"
         if hours >= 3:
             return PARTIAL, f"{zone.upper()}: ~{hours:.0f}h overlap"
-        return POOR, f"{zone.upper()}: ~{hours:.0f}h overlap — nights"
+        return POOR, f"{zone.upper()}: ~{hours:.0f}h overlap - nights"
 
-    if any(re.search(p, text) for p in _CORE):
+    if any(rx(p).search(text) for p in _CORE):
         return UNSTATED, "core hours required, zone not named"
     return UNSTATED, "no working-hours requirement stated"

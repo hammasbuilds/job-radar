@@ -77,7 +77,9 @@ SKILLS: dict[str, tuple[str, ...]] = {
     "GANs": ("\\bgan\\b", "generative adversarial"),
     "Ollama": ("ollama", "llama.cpp", "vllm"),
     "OpenAI API": ("openai api", "gpt-4", "gpt4"),
-    "Anthropic API": ("anthropic", "claude api"),
+    # Not the bare word "anthropic": every Anthropic posting names its own
+    # employer, and each one then "required" the Anthropic API twenty times.
+    "Anthropic API": ("anthropic api", "claude api", "anthropic sdk", "claude sdk"),
 
     # --- CV / NLP tasks ---
     "Computer vision": ("computer vision", "\\bcv\\b(?! ?/)", "image processing"),
@@ -115,7 +117,10 @@ SKILLS: dict[str, tuple[str, ...]] = {
     "Linux": ("linux", "unix"),
 
     # --- ways of working ---
-    "Research": ("research", "publication", "paper", "phd", "mphil"),
+    # Not the bare word "research", which is in half of all AI postings as a
+    # department name and made "Research" the top skill of every gap report.
+    "Research": ("publications?", "published (?:papers|research)", "phd", "mphil",
+                 "research experience", "peer[- ]reviewed", "first[- ]author"),
     "Data annotation": ("annotation", "labeling", "labelling", "inter[- ]annotator"),
     "Technical writing": ("technical writing", "documentation"),
 }

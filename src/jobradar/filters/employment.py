@@ -5,19 +5,26 @@ the reason is section 4 of that note: a European company that will not sponsor
 a visa will often happily engage a **contractor** anywhere in the world. No
 immigration, no payroll entity, an invoice. From Pakistan that is frequently
 the realistic route, so a posting that refuses sponsorship but welcomes B2B is
-not a rejection — it is a different kind of lead.
+not a rejection - it is a different kind of lead.
 
-It is also what turns one crawl into two products. The same data, asked "who
-will take a contractor", answers "find me clients" instead of "find me a job".
+This never kills a posting. It is a badge, and it decides whether the
+contractor path can rescue a region-locked role into the Remote section.
 
-This never kills a posting. It is a badge and a ranking weight, because the
-user's answer to "is contract acceptable" was yes-alongside-employment, not
-contract-only.
+**"B2B" is a contract form only when it is said about the contract.** The
+first version matched the bare word, so "we are a B2B SaaS company" and
+"a B2B marketplace" read as contractor offers - and that rescued a full-time,
+EU-preferred role that refused sponsorship straight into the Remote tab.
+"No B2B contracts, permanent employment only" read as *both* offered. Every
+contractor phrase is now checked for a negation in front of it, and B2B
+counts only next to a word about the engagement ("B2B contract", "on a B2B
+basis", "B2B or UoP", "contract type: B2B").
 """
 
 from __future__ import annotations
 
 import re
+
+from . import rx
 
 CONTRACTOR = "contractor"    # explicitly welcomes freelance / B2B
 EITHER = "either"            # says both are possible
@@ -25,30 +32,47 @@ EMPLOYEE = "employee"        # explicitly an employment contract only
 UNSTATED = "unstated"
 
 _CONTRACTOR = (
-    r"\bb2b\b",
-    r"\bfreelanc(?:e|er|ing)\b",
-    r"\bcontractor\b",
-    r"contract (?:role|position|basis|work)\b",
-    r"self[- ]employed",
+    r"\bb2b\s+(?:contract|agreement|cooperation|co-operation|basis|invoic\w*|model|engagement|"
+    r"arrangement|terms|form|setup|option|rate)",
+    r"\b(?:on|via|through|under) (?:a )?b2b\b",
+    r"\b(?:contract type|type of contract|employment type|form of employment|type of employment|"
+    r"engagement)\s*:?\s*(?:[\w ]{0,30}(?:,|/|or)\s*)?b2b\b",
+    r"\bb2b\s*(?:/|or|and|\+|,)\s*(?:uop|coe|employment contract|permanent|full[- ]time|umowa)",
+    r"\b(?:uop|coe|employment contract|permanent contract|permanent employment|umowa o prac\w)"
+    r"\s*(?:/|or|and|\+|,)\s*b2b\b",
+    r"\bb2b\s*:\s*\d",
+    r"\bfreelanc(?:e|er|ing)\s+(?:role|position|basis|contract|engagement|work|project|opportunity)",
+    r"\b(?:as an?|hire an?|hiring an?|engage an?|work as an?|this is an?|join us as an?) "
+    r"(?:independent |freelance |remote |full[- ]time |part[- ]time )?(?:contractor|freelancer)\b",
+    r"\bindependent contractor",
+    r"\bcontract(?:or)? (?:role|position|basis|engagement|agreement|opportunity)\b",
+    r"\bcontract[- ]to[- ]hire\b",
+    r"\bcontractors? (?:are )?welcome",
+    r"\bself[- ]employed",
     r"\bumbrella (?:company|contract)",
-    r"independent contractor",
-    r"(?:via|through) (?:a|your) (?:own )?(?:company|limited company|entity)",
-    r"invoice (?:us|monthly|the company)",
-    r"\bdaily rate\b",
-    r"\bday rate\b",
-    r"outside ir35",
+    r"(?:via|through) (?:a|your) (?:own )?(?:company|limited company|ltd|entity)",
+    r"\binvoice (?:us|monthly|the company)",
+    r"\b(?:daily|day) rate\b",
+    r"\boutside ir35",
     r"\bcontract of services\b",
-    r"\bcontract type:?\s*(?:b2b|contract|freelance)",
+    r"\b1099\b",
 )
 
 _EMPLOYEE = (
     r"permanent (?:employment|contract|position|role)\b",
     r"employment contract only",
     r"this is (?:a )?(?:full[- ]time )?(?:permanent )?employ(?:ment|ee) (?:role|position)",
-    r"we do not (?:work with|engage|hire) (?:contractors|freelancers)",
-    r"no (?:contractors|freelancers|b2b|agencies)",
+    r"we do not (?:work with|engage|hire|accept) (?:contractors|freelancers|b2b)",
+    r"\bno (?:contractors|freelancers|b2b|agencies)\b",
     r"(?:employee|staff) position only",
+    r"\b(?:w-?2|full[- ]time employee|fte) (?:only|position|role)\b",
 )
+
+# A negation just before a contractor phrase turns it into its opposite:
+# "no B2B contracts", "not a contract role", "we don't hire freelancers".
+_NEGATION = re.compile(
+    r"\b(?:no|not|never|without|don't|do not|doesn't|does not|cannot|can't|won't|isn't|is not)"
+    r"\W+(?:\w+\W+){0,2}$")
 
 # Lever and Arbeitnow put this in a structured tag, which is worth reading
 # before any regex: it is the company's own word for it.
@@ -56,9 +80,18 @@ _TAG_CONTRACT = {"contract", "contractor", "freelance", "b2b", "temporary", "int
 _TAG_PERMANENT = {"permanent", "full time", "full-time", "fulltime", "employee"}
 
 
+def _unnegated(patterns, text: str) -> str | None:
+    for pattern in patterns:
+        for found in rx(pattern).finditer(text):
+            if _NEGATION.search(text[max(0, found.start() - 30):found.start()]):
+                continue
+            return found.group(0)
+    return None
+
+
 def _hit(patterns, text: str) -> str | None:
     for pattern in patterns:
-        found = re.search(pattern, text)
+        found = rx(pattern).search(text)
         if found:
             return found.group(0)
     return None
@@ -68,11 +101,11 @@ def classify(posting) -> tuple[str, str]:
     text = posting.haystack
     tags = {t.strip().lower() for t in posting.tags}
 
-    contractor = _hit(_CONTRACTOR, text) or (
-        next((t for t in tags if t in _TAG_CONTRACT), None)
+    contractor = _unnegated(_CONTRACTOR, text) or (
+        next((t for t in sorted(tags) if t in _TAG_CONTRACT), None)
     )
     employee = _hit(_EMPLOYEE, text) or (
-        next((t for t in tags if t in _TAG_PERMANENT), None)
+        next((t for t in sorted(tags) if t in _TAG_PERMANENT), None)
     )
 
     # Both present is the interesting case and it is common: "permanent

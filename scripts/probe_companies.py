@@ -118,4 +118,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # A Windows console defaults to the ANSI code page; the output has arrows and ellipses.
+    for _stream in (sys.stdout, sys.stderr):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
     main()
