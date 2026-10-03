@@ -66,10 +66,11 @@ roles that will either relocate you *or* take you remote.
 Needs **Python 3.11+** and two packages. Everything else is standard library.
 
 ```bash
-pip install fastapi uvicorn
+pip install -e ".[dev]"               # fastapi, uvicorn, pytest; puts `jobradar` on the path
+cp config.example.toml config.toml    # optional: contact address, CV and portfolio paths
 python scripts/fetch.py               # crawl, filter, store
-python -m jobradar.api                # dashboard at http://127.0.0.1:8000
-python -m pytest                      # 64 tests
+job-radar                             # dashboard at http://127.0.0.1:8000 (or python -m jobradar.api)
+python -m pytest                      # 148 tests, offline, against a scratch data directory
 
 python scripts/probe_companies.py --wide   # which company boards are real
 ```
