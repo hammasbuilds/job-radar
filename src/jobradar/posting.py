@@ -26,7 +26,11 @@ from datetime import UTC, datetime
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 _TAG = re.compile(r"<[^>]+>")
-_BLOCK = re.compile(r"(?i)<(?:br|/p|/li|li|/div|/h[1-6]|/tr|/ul|/ol)\b[^>]*>")
+# `<p>` opens as well as closes: Hacker News separates paragraphs with a bare
+# `<p>` and never closes one, so without it the header line of 227 of 258
+# comments in one thread ran straight into the description, and the
+# "| VISA" header convention and the per-role split never saw a line end.
+_BLOCK = re.compile(r"(?i)<(?:br|p|/p|/li|li|/div|/h[1-6]|/tr|/ul|/ol)\b[^>]*>")
 _INVISIBLE = re.compile(r"(?is)<(script|style|template)\b.*?</\1\s*>")
 _WS = re.compile(r"[ \t\r\f\v\u00a0]+")
 

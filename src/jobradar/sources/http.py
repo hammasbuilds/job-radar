@@ -14,6 +14,18 @@ are comparable.
 **Nothing here sends a credential.** There is no auth argument, no header slot
 for a token and no session. That is a design constraint from the note this
 project came from: if a source needs a password, it is the wrong source.
+
+**robots.txt is obeyed, per host, before the first request.** Read the way
+RFC 9309 says to: a 4xx for robots.txt means there are no rules (Ashby
+answers 401 for it), a 5xx or an unreachable host means *assume everything is
+disallowed* for this run. A disallowed URL raises `Blocked` rather than being
+fetched. SmartRecruiters is the case that made this matter: its API host
+serves `User-agent: * / Disallow: /`, and it was being polled on every run.
+
+**One request per host per second, or the host's Crawl-delay if longer.**
+Lever and RemoteOK both publish `Crawl-delay: 1`; the Greenhouse loop asked
+one host 46 times back to back. A 429 or 5xx is retried with backoff, and a
+`Retry-After` header is honoured up to a minute.
 """
 
 from __future__ import annotations
@@ -25,6 +37,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import urllib.robotparser
 from functools import lru_cache
 from pathlib import Path
 
@@ -46,14 +59,124 @@ def user_agent() -> str:
 TIMEOUT = 30.0
 RETRIES = 3
 BACKOFF = 2.0
+# Seconds between two requests to the same host; a robots.txt Crawl-delay
+# longer than this wins.
+MIN_INTERVAL = 1.0
+RETRY_AFTER_CAP = 60.0
+ROBOTS_MAX_AGE = 24 * 3600
+# The product token robots.txt groups are matched against.
+ROBOTS_AGENT = "job-radar"
+_RETRY_STATUS = (429, 500, 502, 503, 504)
 
 
 class SourceError(RuntimeError):
     """The source could not be read. Never raised for 'no jobs'."""
 
 
+class Blocked(SourceError):
+    """robots.txt disallows this URL for this agent, or could not be read."""
+
+
+# Per-process state: when each host was last asked, and its parsed rules.
+_last_request: dict[str, float] = {}
+_robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
+
+
+def _open(request: urllib.request.Request, timeout: float):
+    """The one call that touches the network. Tests replace it."""
+    return urllib.request.urlopen(request, timeout=timeout)
+
+
+def _pace(host: str, interval: float) -> None:
+    last = _last_request.get(host)
+    if last is not None:
+        wait = interval - (time.monotonic() - last)
+        if wait > 0:
+            time.sleep(wait)
+    _last_request[host] = time.monotonic()
+
+
+def _robots_for(scheme: str, host: str) -> urllib.robotparser.RobotFileParser | None:
+    """The host's rules, or None when it publishes none.
+
+    Raises `Blocked` when robots.txt could not be fetched for a server or
+    network reason, which RFC 9309 says to read as "disallow everything".
+    The text is cached on disk for a day like any other response.
+    """
+    if host in _robots:
+        return _robots[host]
+    url = f"{scheme}://{host}/robots.txt"
+    slot = _slot(f"ROBOTS:{url}")
+    text: str | None
+    if slot.exists() and time.time() - slot.stat().st_mtime < ROBOTS_MAX_AGE:
+        with gzip.open(slot, "rt", encoding="utf-8") as handle:
+            text = handle.read()
+    else:
+        _pace(host, MIN_INTERVAL)
+        request = urllib.request.Request(url, headers={"User-Agent": user_agent()})
+        try:
+            with _open(request, TIMEOUT) as response:
+                text = response.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as exc:
+            if 400 <= exc.code < 500:
+                text = ""             # "unavailable": no rules, crawl allowed
+            else:
+                raise Blocked(f"{url}: HTTP {exc.code}, so everything is disallowed") from exc
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise Blocked(f"{url}: unreachable ({exc}), so everything is disallowed") from exc
+        slot.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(slot, "wt", encoding="utf-8") as handle:
+            handle.write(text)
+    rules = None
+    if text.strip():
+        rules = urllib.robotparser.RobotFileParser(url)
+        rules.parse(text.splitlines())
+    _robots[host] = rules
+    return rules
+
+
+def allowed(url: str) -> tuple[bool, float]:
+    """(may this URL be fetched, seconds to leave between requests to its host)."""
+    parts = urllib.parse.urlsplit(url)
+    rules = _robots_for(parts.scheme or "https", parts.netloc.lower())
+    if rules is None:
+        return True, MIN_INTERVAL
+    delay = rules.crawl_delay(ROBOTS_AGENT)
+    return rules.can_fetch(ROBOTS_AGENT, url), max(MIN_INTERVAL, float(delay or 0))
+
+
+def _retry_after(exc: urllib.error.HTTPError, attempt: int) -> float:
+    header = exc.headers.get("Retry-After") if exc.headers is not None else None
+    try:
+        seconds = float(header) if header else BACKOFF ** (attempt + 1)
+    except ValueError:            # an HTTP date; not worth parsing for a minute
+        seconds = BACKOFF ** (attempt + 1)
+    return min(max(seconds, 0.0), RETRY_AFTER_CAP)
+
+
 def _slot(url: str) -> Path:
     return config.cache_dir() / f"{hashlib.blake2b(url.encode(), digest_size=10).hexdigest()}.json.gz"
+
+
+def _request_slot(url: str, method: str = "GET", body: bytes | None = None) -> Path:
+    # A POST is cached under a different key from a GET of the same URL.
+    # Workable's listing is a POST with an empty body; without this it would
+    # read a GET's cached failure and return nothing forever.
+    return _slot(f"{method}:{url}:{(body or b'').decode('utf-8', 'replace')}")
+
+
+def prime(url: str, text: str, *, method: str = "GET", body: bytes | None = None) -> Path:
+    """Put a response in the cache as if `url` had answered with `text`.
+
+    How the offline dry run serves fixtures: it fills a scratch cache with
+    this and replays it, so the fixtures go through exactly the code path a
+    cached live response does.
+    """
+    slot = _request_slot(url, method, body)
+    slot.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(slot, "wt", encoding="utf-8") as handle:
+        handle.write(text)
+    return slot
 
 
 def get_text(url: str, *, max_age: float = 6 * 3600, cache: bool = True) -> str | None:
@@ -82,10 +205,7 @@ def get_json(url: str, *, max_age: float = 6 * 3600, cache: bool = True,
 
 def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
            method: str = "GET", body: bytes | None = None):
-    # A POST is cached under a different key from a GET of the same URL.
-    # Workable's listing is a POST with an empty body; without this it would
-    # read a GET's cached failure and return nothing forever.
-    slot = _slot(f"{method}:{url}:{(body or b'').decode('utf-8', 'replace')}")
+    slot = _request_slot(url, method, body)
     # Offline mode replays whatever is cached, however old, and never touches
     # the network. It is how a crawl is reproduced exactly: the same bytes in
     # give the same funnel out, which a live crawl never can.
@@ -104,8 +224,14 @@ def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
     # what to do with the 404 that follows.
     url = urllib.parse.quote(url, safe=":/?&=%~+,._-")
 
+    may, interval = allowed(url)
+    if not may:
+        raise Blocked(f"{url}: disallowed by robots.txt")
+    host = urllib.parse.urlsplit(url).netloc.lower()
+
     last: Exception | None = None
     for attempt in range(RETRIES):
+        _pace(host, interval)
         try:
             headers = {"User-Agent": user_agent()}
             if body is not None:
@@ -113,7 +239,7 @@ def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
             request = urllib.request.Request(
                 url, headers=headers, data=body, method=method
             )
-            with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            with _open(request, TIMEOUT) as response:
                 text = response.read().decode("utf-8", "replace")
             payload = json.loads(text) if parse else text
             if cache:
@@ -125,9 +251,10 @@ def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
             # 404 means this company has no board here. Not an error.
             if exc.code in (404, 410):
                 return None
-            # 429 is the one worth waiting out; everything else fails fast.
-            if exc.code == 429 and attempt < RETRIES - 1:
-                time.sleep(BACKOFF ** (attempt + 1))
+            # Rate limits and server errors are worth waiting out, for as
+            # long as the server asks; any other status fails fast.
+            if exc.code in _RETRY_STATUS and attempt < RETRIES - 1:
+                time.sleep(_retry_after(exc, attempt))
                 last = exc
                 continue
             raise SourceError(f"{url}: HTTP {exc.code}") from exc

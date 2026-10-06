@@ -174,8 +174,8 @@ def jobs_for(company: YCCompany, **kw) -> list[Posting]:
     if stripped != company.slug:
         slugs.append(stripped)
 
-    fetchers = (ats.ashby, greenhouse.fetch, lever.fetch,
-                ats.workable, ats.smartrecruiters)
+    # Not SmartRecruiters: its API host disallows every agent in robots.txt.
+    fetchers = (ats.ashby, greenhouse.fetch, lever.fetch, ats.workable)
     for fetch in fetchers:
         for slug in slugs:
             try:

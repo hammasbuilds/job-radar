@@ -60,12 +60,21 @@ SEEDS: dict[str, tuple[str, ...]] = {
     # the answer was not "Pakistani employers do not publish boards", it was
     # "they do not publish them on the two providers we asked". Re-probing 65
     # employers across six providers found seven readable boards.
-    "smartrecruiters": (
-        "devsinc", "purelogics", "securiti",
-    ),
+    # Devsinc, PureLogics and Securiti were found on SmartRecruiters, and are
+    # not asked: api.smartrecruiters.com serves `User-agent: * / Disallow: /`
+    # (only LinkedInBot is allowed), and this tool obeys robots.txt. Their
+    # careers pages are the manual route. See BLOCKED below.
     "ashby": (
         "tajir",
     ),
+}
+
+
+# Boards that resolve but that robots.txt forbids this agent to read. Kept as
+# data rather than deleted, so the probe's finding is not lost and a policy
+# change on their side is a one-line move back into SEEDS.
+BLOCKED: dict[str, tuple[str, ...]] = {
+    "smartrecruiters": ("devsinc", "purelogics", "securiti"),
 }
 
 

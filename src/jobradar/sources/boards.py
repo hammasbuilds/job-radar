@@ -22,12 +22,16 @@ the source.
 from __future__ import annotations
 
 import re
+import urllib.parse
 from datetime import UTC, datetime
 
 from ..posting import Posting, clean
 from .http import get_json
 
-HIMALAYAS = "https://himalayas.app/jobs/api?limit={limit}"
+# The API caps `limit` at 20 whatever is asked for, so more than twenty jobs
+# means following `nextCursor`. Asking for limit=200 in one call returned 20.
+HIMALAYAS = "https://himalayas.app/jobs/api?limit=20"
+HIMALAYAS_PAGE = 20
 JOBICY = "https://jobicy.com/api/v2/remote-jobs?count={limit}"
 REMOTEOK = "https://remoteok.com/api"
 MUSE = ("https://www.themuse.com/api/public/jobs?page={page}"
@@ -61,11 +65,19 @@ def _iso(value) -> datetime | None:
 
 
 def himalayas(limit: int = 200, **kw) -> list[Posting]:
-    payload = get_json(HIMALAYAS.format(limit=limit), **kw)
-    if not payload or "jobs" not in payload:
-        return []
+    jobs: list[dict] = []
+    url = HIMALAYAS
+    while len(jobs) < limit:
+        payload = get_json(url, **kw)
+        if not payload or not payload.get("jobs"):
+            break
+        jobs += payload["jobs"]
+        cursor = payload.get("nextCursor")
+        if not cursor:
+            break
+        url = f"{HIMALAYAS}&cursor={urllib.parse.quote(str(cursor), safe='')}"
     out = []
-    for job in payload["jobs"]:
+    for job in jobs[:limit]:
         where = job.get("locationRestrictions") or []
         out.append(
             Posting(
@@ -182,6 +194,11 @@ _PROSE = re.compile(
 _URL = re.compile(r"https?://\S+|\b[\w-]+\.(?:com|io|ai|co|org|dev|app|net)\b\S*", re.I)
 _BULLET = re.compile(r"^\s*(?:[-*•·◦▪>]|\d{1,2}[.)])\s*")
 _MONEY = re.compile(r"[$€£]|\b\d+\s*k\b|\bequity\b|\bsalary\b", re.I)
+# "Full-time", "Contract / Part-time (10-40 hrs/wk)": the employment field of
+# the header, which sits beside the location and is not one.
+_EMPLOYMENT_FIELD = re.compile(
+    r"^\W*(?:(?:full|part)[- ]?time|contract\w*|freelanc\w*|intern\w*|permanent|"
+    r"temporary|temp\b)", re.I)
 MAX_ROLES = 12
 
 
@@ -268,7 +285,8 @@ def hn_roles(body: str) -> tuple[str, list[str], str]:
         parts = _role_parts(text) if not _PROSE.search(text) else []
         if parts:
             roles += parts
-        elif len(text) <= 60 and not _MONEY.search(text) and not _PROSE.search(text):
+        elif (len(text) <= 60 and not _MONEY.search(text) and not _PROSE.search(text)
+              and not _EMPLOYMENT_FIELD.match(text)):
             places.append(text)
 
     for line in lines[1:]:

@@ -4,7 +4,7 @@ A master list of ~330 job sites is a list of names. This is the same list
 after each one was actually probed, which is a different and much shorter
 document — and the honest answer to "are you covering everything?".
 
-Four statuses:
+Five statuses:
 
   WIRED       fetched on every run, code exists, verified returning data
   NO_API      real site, no public API; HTML only, or it blocks automation
@@ -45,7 +45,9 @@ SOURCES: tuple[Source, ...] = (
     Source("Lever", "ats", WIRED, "workplaceType and commitment as fields"),
     Source("Ashby", "ats", WIRED,
            "GET not POST — the error that cost 74 YC boards"),
-    Source("SmartRecruiters", "ats", WIRED, "listing has no body text"),
+    Source("SmartRecruiters", "ats", NO_API,
+           "API host robots.txt is `User-agent: * Disallow: /` (LinkedInBot only); "
+           "adapter kept, not called"),
     Source("Workable", "ats", WIRED, "POST with an empty body"),
     Source("Personio", "ats", WIRED, "XML, common in Germany"),
     Source("Recruitee", "ats", WIRED, "needs an exact subdomain"),

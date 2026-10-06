@@ -42,11 +42,14 @@ def fetch(slug: str, company: str | None = None, **kw) -> list[Posting]:
             Posting(
                 source=NAME,
                 company=company or slug,
-                title=job.get("title", "").strip(),
-                location=(job.get("location") or {}).get("name", "").strip(),
-                url=job.get("absolute_url", ""),
+                title=(job.get("title") or "").strip(),
+                location=((job.get("location") or {}).get("name") or "").strip(),
+                url=job.get("absolute_url") or "",
                 text=body,
-                posted=_when(job.get("updated_at") or job.get("first_published")),
+                # `first_published` is when the job went up; `updated_at`
+                # moves whenever a recruiter edits it. Reading updated_at
+                # first made a May posting rank as September-fresh.
+                posted=_when(job.get("first_published") or job.get("updated_at")),
             )
         )
     return out
