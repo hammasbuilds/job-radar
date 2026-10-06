@@ -62,8 +62,6 @@ _REGION = (
     r"anywhere in europe",
     r"eligible to work in (?:the )?(?:eu|eea|europe)\b",
     r"\bemea\b.{0,20}only",
-    r"(?:us|usa|united states|uk|canada)[- ](?:only|based)\b",
-    r"authoriz(?:ed|ation) to work in the (?:us|united states|uk)\b",
 )
 
 _COUNTRY_NAMES = (
@@ -90,6 +88,13 @@ _COUNTRY = tuple(
 ) + tuple(
     rf"\bbased in {_THE}{name}\b" for name in _COUNTRY_NAMES if name not in ("us", "uk")
 ) + (
+    # One country, so COUNTRY rather than REGION. Filed under REGION, "Contract
+    # role, must be US-based" was rescued into the Remote tab by the contractor
+    # path, which exists for "EU only", not for one named country. "A US-based
+    # company" describes the employer, not the hire, and is left alone.
+    r"\b(?:us|usa|united states|uk|canada)[- ](?:only|based)\b"
+    r"(?!\s+(?:company|startup|team|firm|business|organi[sz]ation|employer|clients?|customers?))",
+    r"authoriz(?:ed|ation) to work in the (?:us|united states|uk)\b",
     r"\bresidents? of \w+ only",
     r"you (?:must|will need to) (?:hold|have) (?:a|the) right to work in \w+",
 )
@@ -161,6 +166,16 @@ def classify(posting) -> tuple[str, str]:
     # not override "Remote (UK)" in the field that exists to say where.
     stated = _from_location(posting.location)
     if stated and not _hit(_ONSITE, text):
+        # A location field naming one country says where the job is, not that
+        # it is remote. Without any remote signal it is an office job, and
+        # filing "Paris, France" as "remote, country-locked" put a reason on
+        # the trust screen the posting never gave - 44 of them in one replay,
+        # and it hid "relocation offered" behind it.
+        if stated[0] == COUNTRY and not (_REMOTE_WORD.search(text) or posting.remote_hint):
+            hybrid = _hit(_HYBRID, text)
+            if hybrid:
+                return HYBRID, hybrid.strip()
+            return ONSITE, f"{stated[1]}, no remote option stated"
         return stated
 
     # Most specific first. A posting saying both "remote" and "must be in

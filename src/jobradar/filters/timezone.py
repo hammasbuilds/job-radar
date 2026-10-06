@@ -59,8 +59,13 @@ _NEAR_TIME = re.compile(
     r"(?:\d\s*(?:am|pm)?\s*[-–/]?\s*$|(?:hours|time\s?zone|overlap|core)\W*$)", re.I)
 _AFTER_TIME = re.compile(r"^\W{0,3}(?:hours|time|timezone|overlap|business|working)", re.I)
 
+# "async" alone is a Python keyword far more often than a way of working:
+# "async Python (asyncio)" gave a role the "async / no core hours" badge.
 _ASYNC = (
-    r"\basync(?:hronous)?(?:[- ]first)?\b",
+    r"\basync(?:hronous)?[- ](?:first|by default|culture|communication|collaboration|"
+    r"work(?:ing|place)?|team|company|environment|organi[sz]ation)\b",
+    r"\b(?:work|collaborate|communicate)s? (?:fully |mostly |primarily )?"
+    r"async(?:hronously)?\b",
     r"no core hours",
     r"work (?:when|whenever) (?:you|it) ",
     r"fully flexible hours",

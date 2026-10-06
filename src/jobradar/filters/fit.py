@@ -55,7 +55,7 @@ _DOMAIN = re.compile(
 )
 _CRAFT = re.compile(
     r"\b(?:engineers?|engineering|scientists?|researchers?|research|developers?|"
-    r"architect|programmer)\b",
+    r"architect|programmer|fellows?)\b",
     re.I,
 )
 
@@ -69,9 +69,15 @@ _NOT_THE_JOB = re.compile(
     r"recruit\w*|teacher|tutor|trainer|instructor|intern(?:ship)?|advocate|"
     r"developer relations|devrel|evangelist|value|economist|economics|policy|"
     r"legal|counsel|ux|user experience|designer|commercial|partner|partnerships|"
-    r"go[- ]to[- ]market|gtm|therap\w*|clinical|nurse|writer|editor)\b",
+    r"go[- ]to[- ]market|gtm|therap\w*|clinical|nurse|writer|editor|people)\b",
     re.I,
 )
+
+# Where a title's role ends and its team or place begins: "Data Scientist,
+# Marketing", "ML Engineer - Policy & Safety", "Research Engineer: Agents".
+# Parentheses stay with the role, so "Applied (AI) Value Engineer (DACH)" is
+# still read as a value engineer.
+_QUALIFIER_SPLIT = re.compile(r"\s*(?:,|:|\|| [-–—] )\s*")
 
 _PLURAL = re.compile(r"\b(engineer|scientist|researcher|developer)s\b")
 
@@ -102,21 +108,40 @@ def composite_role(title: str) -> str | None:
     return None
 
 
-def role_match(title: str) -> str | None:
-    """The target role this title *is*, if any.
-
-    The named list wins when it matches - its answer is the specific role.
-    Otherwise the compositional rule catches the titles no finite list will
-    ever contain. Either way a customer-facing or non-engineering word in the
-    title vetoes the match.
-    """
-    if not title or _NOT_THE_JOB.search(title):
-        return None
+def _match(title: str) -> str | None:
     low = _normalise(title)
     for role in _ROLES:
         if f" {role} " in low:
             return role
     return composite_role(title)
+
+
+def role_match(title: str) -> str | None:
+    """The target role this title *is*, if any.
+
+    The named list wins when it matches - its answer is the specific role.
+    Otherwise the compositional rule catches the titles no finite list will
+    ever contain. A customer-facing or non-engineering word vetoes the match
+    when it is part of the role itself ("Solutions Architect", "Sales
+    Engineer"), but not when it only names the team after a comma or dash:
+    "Data Scientist, Marketing" and "ML Engineer - Policy & Safety" are a
+    data scientist and an ML engineer, and the veto anywhere in the title
+    killed both as "not a target role".
+    """
+    if not title:
+        return None
+    head = _QUALIFIER_SPLIT.split(title.strip(), maxsplit=1)[0]
+    if _NOT_THE_JOB.search(head):
+        return None
+    named = _match(head)
+    if named:
+        return named
+    # The role is not readable from the head alone (a Hacker News header, a
+    # title that starts with the team), so the whole title is judged, and
+    # then a veto word anywhere counts.
+    if _NOT_THE_JOB.search(title):
+        return None
+    return _match(title)
 
 
 def score(posting) -> tuple[float, str]:

@@ -136,6 +136,12 @@ _AFTER = re.compile(
     r"post|doing|coding|programming|(?:is |are )?(?:required|minimum|needed|essential|must))",
     re.I,
 )
+# "backed by 25 years of developer tooling expertise", "our 15 years in
+# fintech": the company's experience, not the candidate's. It killed a
+# founding ML role as "wants 25+ years".
+_COMPANY_BEFORE = re.compile(
+    r"(?:backed by|built on|draw(?:s|ing)? on|leverag\w+|\bour)\s+"
+    r"(?:over |more than |nearly |almost |about |around )?$", re.I)
 # "for 10 years", "for over a decade": how long the company has been at it.
 _FOR_DURATION = re.compile(r"\bfor (?:over |more than |nearly |almost |about |around )?$", re.I)
 # ... or what comes right before it: "experience: 5+ years", "at least",
@@ -177,6 +183,8 @@ def years_required(text: str) -> int | None:
             if _NOT_A_REQUIREMENT.search(before[-25:] + " " + after[:25]):
                 continue
             if _FOR_DURATION.search(before) and "experience" not in after[:30].lower():
+                continue
+            if _COMPANY_BEFORE.search(before):
                 continue
             if not (_AFTER.search(after) or _BEFORE.search(before)):
                 continue

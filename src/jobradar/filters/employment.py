@@ -34,7 +34,13 @@ UNSTATED = "unstated"
 _CONTRACTOR = (
     r"\bb2b\s+(?:contract|agreement|cooperation|co-operation|basis|invoic\w*|model|engagement|"
     r"arrangement|terms|form|setup|option|rate)",
-    r"\b(?:on|via|through|under) (?:a )?b2b\b",
+    # "on a B2B basis" is a contract; "we sell through B2B channels" and "a
+    # B2B SaaS company" are a market. The words after B2B tell them apart.
+    r"\b(?:on|via|through|under) (?:a )?b2b\b(?![- /&]*(?:saas|sales|market\w*|customers?|"
+    r"clients?|compan\w*|software|products?|platforms?|space|segments?|business\w*|"
+    r"e-?commerce|fintech|startups?|tech\w*|brands?|enterprises?|partner\w*|payments?|"
+    r"leads?|growth|go[- ]to[- ]market|b2c|channels?|deals?|accounts?|solutions?|"
+    r"services?|buyers?|sellers?|commerce|marketplaces?|retail|models?|focus))",
     r"\b(?:contract type|type of contract|employment type|form of employment|type of employment|"
     r"engagement)\s*:?\s*(?:[\w ]{0,30}(?:,|/|or)\s*)?b2b\b",
     r"\bb2b\s*(?:/|or|and|\+|,)\s*(?:uop|coe|employment contract|permanent|full[- ]time|umowa)",
@@ -80,10 +86,20 @@ _TAG_CONTRACT = {"contract", "contractor", "freelance", "b2b", "temporary", "int
 _TAG_PERMANENT = {"permanent", "full time", "full-time", "fulltime", "employee"}
 
 
+# "We focus on B2B." is the market again, with nothing after it to say so.
+_MARKET_VERB = re.compile(
+    r"\b(?:focus\w*|speciali[sz]\w*|sell\w*|serv(?:e|es|ing)|operat\w*|compet\w*|"
+    r"expand\w*|position\w*|built|grow\w*)\W+(?:\w+\W+){0,2}$")
+
+
 def _unnegated(patterns, text: str) -> str | None:
     for pattern in patterns:
         for found in rx(pattern).finditer(text):
-            if _NEGATION.search(text[max(0, found.start() - 30):found.start()]):
+            before = text[max(0, found.start() - 30):found.start()]
+            if _NEGATION.search(before):
+                continue
+            if "b2b" in found.group(0) and _MARKET_VERB.search(before + found.group(0)
+                                                                .split("b2b")[0]):
                 continue
             return found.group(0)
     return None

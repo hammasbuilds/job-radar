@@ -160,6 +160,7 @@ REGIONS = {
 GLOBAL_WORDS = {
     "anywhere", "worldwide", "global", "remote worldwide", "anywhere in the world",
     "work from anywhere", "fully remote", "global remote", "any location",
+    "everywhere", "remote everywhere", "remote anywhere",
 }
 
 # Words that carry no location information and must not count either way.
