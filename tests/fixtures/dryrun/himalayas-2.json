@@ -1,0 +1,17 @@
+{
+  "offset": 20,
+  "limit": 20,
+  "totalCount": 2,
+  "nextCursor": null,
+  "jobs": [
+    {
+      "title": "Applied Scientist",
+      "companyName": "Orbital Notes",
+      "locationRestrictions": ["Europe"],
+      "applicationLink": "https://himalayas.app/companies/orbital-notes/jobs/applied-scientist",
+      "description": "<p>Evaluation and fine-tuning of LLMs. We hire as independent contractors across Europe.</p>",
+      "pubDate": 1791100000,
+      "employmentType": "Contractor"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "data": [
+    {
+      "slug": "acme-ml-engineer-london",
+      "company_name": "Acme AI",
+      "title": "Machine Learning Engineer",
+      "description": "<p>Train and ship models.</p>",
+      "remote": false,
+      "url": "https://www.arbeitnow.com/jobs/companies/acme-ai/machine-learning-engineer-london",
+      "tags": ["Machine Learning"],
+      "job_types": ["Full Time"],
+      "location": "London",
+      "created_at": 1791104400
+    },
+    {
+      "slug": "spektrum-founding-ml-engineer",
+      "company_name": "Spektrum GmbH",
+      "title": "Founding ML Engineer",
+      "description": "<p>Spektrum is backed by 25 years of developer tooling expertise.</p><p>You have 2+ years of experience with Python and PyTorch.</p><p>We offer visa support and relocation.</p>",
+      "remote": false,
+      "url": "https://www.arbeitnow.com/jobs/companies/spektrum/founding-ml-engineer",
+      "tags": [],
+      "job_types": ["Full Time"],
+      "location": "Berlin",
+      "created_at": 1791104400
+    }
+  ],
+  "links": {},
+  "meta": {}
+}

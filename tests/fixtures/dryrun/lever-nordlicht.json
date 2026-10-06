@@ -1,0 +1,35 @@
+[
+  {
+    "id": "nl-1",
+    "text": "Computer Vision Engineer",
+    "hostedUrl": "https://jobs.lever.co/nordlicht/nl-1",
+    "categories": {"location": "Remote", "commitment": "Contract", "team": "Perception"},
+    "workplaceType": "remote",
+    "descriptionPlain": "Work from anywhere in the world. Segmentation and object detection with PyTorch and OpenCV.",
+    "lists": [{"text": "Engagement", "content": "<li>B2B contract or employment, your choice</li>"}],
+    "additionalPlain": "",
+    "createdAt": 1791100000000
+  },
+  {
+    "id": "nl-2",
+    "text": "NLP Engineer",
+    "hostedUrl": "https://jobs.lever.co/nordlicht/nl-2",
+    "categories": {"location": "Remote - EU", "commitment": "Full-time"},
+    "workplaceType": "remote",
+    "descriptionPlain": "We are a B2B SaaS company and we sell through B2B channels. Remote within the EU.",
+    "lists": [],
+    "additionalPlain": "",
+    "createdAt": 1791100000000
+  },
+  {
+    "id": "nl-3",
+    "text": "Junior AI Engineer",
+    "hostedUrl": "https://jobs.lever.co/nordlicht/nl-3",
+    "categories": {"location": "Lahore, Pakistan", "commitment": "Full-time"},
+    "workplaceType": "onsite",
+    "descriptionPlain": "Our Lahore office builds LLM agents with LangChain and FastAPI.",
+    "lists": [],
+    "additionalPlain": "",
+    "createdAt": 1791100000000
+  }
+]

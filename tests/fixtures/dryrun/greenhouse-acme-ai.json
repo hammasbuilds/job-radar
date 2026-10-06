@@ -1,0 +1,77 @@
+{
+  "jobs": [
+    {
+      "id": 9000001,
+      "title": "Machine Learning Engineer",
+      "location": {"name": "London, UK"},
+      "absolute_url": "https://boards.greenhouse.io/acme-ai/jobs/9000001?gh_src=dryrun",
+      "content": "&lt;p&gt;Train and ship PyTorch models for document understanding.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;2+ years of experience with Python and deep learning&lt;/li&gt;&lt;li&gt;Onsite in our London office&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;We sponsor visas for this role.&lt;/p&gt;",
+      "first_published": "2026-10-01T09:00:00Z",
+      "updated_at": "2026-10-05T09:00:00Z"
+    },
+    {
+      "id": 9000002,
+      "title": "Senior ML Engineer",
+      "location": {"name": "Berlin, Germany"},
+      "absolute_url": "https://boards.greenhouse.io/acme-ai/jobs/9000002",
+      "content": "&lt;p&gt;Lead our ranking models. We sponsor visas.&lt;/p&gt;",
+      "first_published": "2026-09-30T09:00:00Z",
+      "updated_at": "2026-10-04T09:00:00Z"
+    },
+    {
+      "id": 9000003,
+      "title": "AI Engineer",
+      "location": {"name": "Remote"},
+      "absolute_url": "https://boards.greenhouse.io/acme-ai/jobs/9000003",
+      "content": "&lt;p&gt;This is a contract role. Candidates must be US-based.&lt;/p&gt;",
+      "first_published": "2026-10-02T09:00:00Z",
+      "updated_at": "2026-10-02T09:00:00Z"
+    },
+    {
+      "id": 9000004,
+      "title": "Data Scientist, Marketing",
+      "location": {"name": "Paris, France"},
+      "absolute_url": "https://boards.greenhouse.io/acme-ai/jobs/9000004",
+      "content": "&lt;p&gt;Measure campaigns with causal ML. Visa sponsorship is available.&lt;/p&gt;",
+      "first_published": "2026-10-03T09:00:00Z",
+      "updated_at": "2026-10-03T09:00:00Z"
+    },
+    {
+      "id": 9000005,
+      "title": "Account Executive, AI",
+      "location": {"name": "London, UK"},
+      "absolute_url": "https://boards.greenhouse.io/acme-ai/jobs/9000005",
+      "content": "&lt;p&gt;Sell our platform.&lt;/p&gt;",
+      "first_published": "2026-10-03T09:00:00Z",
+      "updated_at": "2026-10-03T09:00:00Z"
+    },
+    {
+      "id": 9000006,
+      "title": "Research Engineer",
+      "location": {"name": "Amsterdam, Netherlands"},
+      "absolute_url": "https://boards.greenhouse.io/acme-ai/jobs/9000006",
+      "content": "&lt;p&gt;Unfortunately we cannot offer visa sponsorship for this position.&lt;/p&gt;",
+      "first_published": "2026-10-03T09:00:00Z",
+      "updated_at": "2026-10-03T09:00:00Z"
+    },
+    {
+      "id": 9000007,
+      "title": "ML Engineer",
+      "location": {"name": "Munich, Germany"},
+      "absolute_url": "https://boards.greenhouse.io/acme-ai/jobs/9000007",
+      "content": "&lt;p&gt;Build forecasting models. A relocation package is included.&lt;/p&gt;",
+      "first_published": "2026-10-04T09:00:00Z",
+      "updated_at": "2026-10-04T09:00:00Z"
+    },
+    {
+      "id": 9000008,
+      "title": null,
+      "location": {"name": null},
+      "absolute_url": "https://boards.greenhouse.io/acme-ai/jobs/9000008",
+      "content": "",
+      "first_published": null,
+      "updated_at": null
+    }
+  ],
+  "meta": {"total": 8}
+}

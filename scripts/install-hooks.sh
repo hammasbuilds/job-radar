@@ -25,13 +25,22 @@ case "$remote_url" in
     ;;
 esac
 
-# Even the right repo must actually be private.
+# Even the right repo must actually be private, and "could not check" is not
+# "private": without gh, or offline, the push is refused. Set
+# JOBRADAR_PUSH_UNVERIFIED=1 for one push when you have checked by hand.
+private="unknown"
 if command -v gh >/dev/null 2>&1; then
   private="$(gh repo view hammasbuilds/job-radar --json isPrivate -q .isPrivate 2>/dev/null || echo unknown)"
-  if [ "$private" = "false" ]; then
-    echo "pre-push: hammasbuilds/job-radar is PUBLIC. Refusing." >&2
-    exit 1
-  fi
+fi
+if [ "$private" = "false" ]; then
+  echo "pre-push: hammasbuilds/job-radar is PUBLIC. Refusing." >&2
+  exit 1
+fi
+if [ "$private" != "true" ] && [ "${JOBRADAR_PUSH_UNVERIFIED:-}" != "1" ]; then
+  echo "pre-push: could not confirm hammasbuilds/job-radar is private (gh: $private)." >&2
+  echo "Check with: gh repo view --json isPrivate -q .isPrivate" >&2
+  echo "then push with JOBRADAR_PUSH_UNVERIFIED=1 if it is." >&2
+  exit 1
 fi
 HOOK
 

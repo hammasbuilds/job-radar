@@ -8,6 +8,18 @@ const el = (tag, cls, text) => {
   return node;
 };
 
+// Every link here comes from a third-party feed. Only http(s) is followed: a
+// "javascript:" URL in a Hacker News comment or a board's apply link would
+// otherwise run inside this dashboard, which can write the pipeline.
+const safeUrl = (url) => {
+  try {
+    const parsed = new URL(url, window.location.href);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : "";
+  } catch (e) {
+    return "";
+  }
+};
+
 // Which verdict values are good news, which are warnings, which are bad.
 // The badge colour is the two-second read, so this mapping is the difference
 // between a scannable list and a wall of grey pills.
@@ -79,9 +91,9 @@ function row(p) {
   top.append(el("span", "title", p.title));
   top.append(el("span", "co", p.company));
   top.append(el("span", "spacer"));
-  if (p.url) {
+  if (safeUrl(p.url)) {
     const a = el("a", "apply", p.reason ? "view" : "apply →");
-    a.href = p.url;
+    a.href = safeUrl(p.url);
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     top.append(a);
@@ -276,7 +288,7 @@ function company(c) {
   ].filter(Boolean);
   links.forEach(([label, href]) => {
     const a = el("a", "apply", label);
-    a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.href = safeUrl(href); a.target = "_blank"; a.rel = "noopener noreferrer";
     top.append(a);
   });
   node.append(top);
@@ -292,7 +304,7 @@ function company(c) {
     c.jobs.slice(0, 8).forEach((j) => {
       const line = el("div");
       const a = el("a", "apply", j.title);
-      a.href = j.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.href = safeUrl(j.url); a.target = "_blank"; a.rel = "noopener noreferrer";
       line.append(a);
       if (j.role_match) line.append(el("span", "badge good", j.role_match));
       if (j.location) line.append(document.createTextNode("  " + j.location));

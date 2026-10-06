@@ -1,0 +1,17 @@
+{
+  "offset": 0,
+  "limit": 20,
+  "totalCount": 2,
+  "nextCursor": "page-two",
+  "jobs": [
+    {
+      "title": "MLOps Engineer",
+      "companyName": "Tannenbaum Data",
+      "locationRestrictions": ["Germany"],
+      "applicationLink": "https://himalayas.app/companies/tannenbaum/jobs/mlops-engineer",
+      "description": "<p>Run our MLflow and Kubernetes stack. Fully remote.</p>",
+      "pubDate": 1791100000,
+      "employmentType": "Full Time"
+    }
+  ]
+}

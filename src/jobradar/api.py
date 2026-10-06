@@ -22,6 +22,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -31,6 +32,11 @@ from . import gap, inventory, pipeline, store
 WEB = Path(__file__).resolve().parent / "web"
 
 app = FastAPI(title="job-radar", docs_url=None, redoc_url=None)
+# Binding to 127.0.0.1 keeps other machines out, but not a web page in this
+# machine's browser that rebinds its own domain to 127.0.0.1 and then reads
+# the search history from /api/*. Refusing any other Host header closes that.
+app.add_middleware(TrustedHostMiddleware,
+                   allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
 
 class Applied(BaseModel):

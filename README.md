@@ -14,52 +14,98 @@ Private repository. See [DO-NOT-PUBLISH.md](DO-NOT-PUBLISH.md).
 
 ## Input / Output
 
+Two ways to see it run without touching the network.
+
+**The dry run** uses nine small invented API responses in `tests/fixtures/dryrun/`
+(fictional companies, each source's real shape) and a throwaway database, so it runs
+anywhere and never reads or writes your data:
+
 ```
-$ python scripts/fetch.py
+$ python scripts/fetch.py --dry-run
 
-asking 53 boards plus 2 aggregators…
-fetched 8,555 postings in 4s
-  greenhouse    6,929
-  lever         1,358
-  arbeitnow       250
-  remotive         18
+the funnel, in pipeline order
+       20  fetched
+       19  after dedup                (-1, 5.0% of fetched)
+       15  after the role filter            (-4, 21.1% of deduplicated)
+           - not one of the target roles                   4
+       14  after the level filter           (-1, 5.3% of deduplicated)
+           - senior level                                  1
+        9  after the route filter           (-5, 26.3% of deduplicated)
+           - remote, country-locked                        2
+           - refuses sponsorship                           1
+           - relocation offered, sponsorship unstated      1
+           - remote, region-locked, no contractor route      1
+        9  kept, in sections:
+           - europe                                        5
+           - sponsorship                                   4
+           - remote                                        3
+           - pakistan                                      2
 
-the funnel
-    8,555  fetched
-    6,252  after dedup                                (-2,303, 26.9% of input)
-    3,075  after no route in (country-locked)         (-3,177, 50.8% of input)
-      902  after onsite, no sponsorship               (-2,173, 34.8% of input)
-      392  after below fit threshold                  (-510, 8.2% of input)
-      305  after relocation offered, sponsorship unstated (-87, 1.4% of input)
-      221  after refuses sponsorship                  (-84, 1.3% of input)
-      173  after hybrid, no sponsorship               (-48, 0.8% of input)
-        3  in section: remote
-      170  in section: sponsorship
+kept, 9 new:
+  1.00  Machine Learning Engineer - acme-ai  [sponsorship,europe]
+  1.00  ML Engineer - Fjordtech  [sponsorship,europe]
+  1.00  Computer Vision Engineer - nordlicht  [remote]
+  1.00  Founding ML Engineer - Spektrum GmbH  [sponsorship,europe]
+  0.94  LLM Engineer - Quokka Systems  [remote]
+  0.88  Applied Scientist - Orbital Notes  [remote,europe]
+  0.78  Junior AI Engineer - nordlicht  [pakistan]
+  0.74  Data Scientist - Indus Analytics  [pakistan]
+  0.55  Data Scientist, Marketing - acme-ai  [sponsorship,europe]
+
+killed, with the phrase that decided it:
+  not one of the target roles                 - acme-ai  (title is not a target role)
+  senior level                               Senior ML Engineer - acme-ai  (senior)
+  remote, country-locked                     AI Engineer - acme-ai  (us-based)
+  not one of the target roles                Account Executive, AI - acme-ai  (title is not a target role)
+  refuses sponsorship                        Research Engineer - acme-ai  (unfortunately we cannot offer visa)
+  relocation offered, sponsorship unstated   ML Engineer - acme-ai  (relocation package - relocation offered, sponsorship not stated)
+  remote, region-locked, no contractor route NLP Engineer - nordlicht  (location names region(s): eu)
+  remote, country-locked                     MLOps Engineer - Tannenbaum Data  (location is germany only)
+  not one of the target roles                Backend Engineer - Fjordtech  (title is not a target role)
+  not one of the target roles                Accountant - Ravi Traders  (title is not a target role)
 ```
 
-**8,555 → 173**, and **9 on screen** after the per-company cap below. Every
-lead-generation tool quotes the first number. None publish the last.
+**The replay** reads the real HTTP cache from the 2026-09-22/23 crawl
+(`python scripts/fetch.py --offline --db <scratch.sqlite3>`), so the numbers below are
+reproducible on this machine. With the code as of 2026-10-06:
+
+```
+    9,898  fetched          greenhouse 7,069 · lever 1,367 · mustakbil 500 · hn 431 · arbeitnow 250 · …
+    9,516  after dedup
+      500  after the role filter      (-9,016: not one of the target roles)
+      241  after the level filter     (-259: senior 111, staff 90, lead 40, principal 12, executive 6)
+      165  after the years filter     (-76: wants 4+ to 10+ years)
+       56  after the route filter     (-109: onsite 46, remote country-locked 25, scope not stated 11,
+                                        refuses 10, nationals only 8, hybrid 4, region-locked 3, …)
+       56  kept: sponsorship 46 · europe 17 · pakistan 5 · remote 3 · gulf 2
+```
+
+**9,898 → 56.** Himalayas is absent from that replay: its request changed to follow the
+API's 20-row pages, so the old cached response no longer matches. The cache predates the
+2026-10-06 fixes; a live crawl will differ.
 
 ### One employer must not fill the screen
 
-Of those 170 sponsorship rows, **161 were Anthropic** — it repeats *"we do
-sponsor visas"* in every posting. The filter is right and the list is useless:
-a correct filter producing an unreadable screen is still a broken screen.
+Of those 46 sponsorship rows, **41 are Anthropic** — it repeats *"we do sponsor visas"*
+in every posting. The filter is right and the list is useless: a correct filter
+producing an unreadable screen is still a broken screen.
 
 The view shows at most **three per company** and says how many it folded
-(*"+ 158 more at Anthropic, folded"*). Nothing is deleted — the rows stay in
-the table, and a cap that silently drops rows is the same sin as a silent
-filter.
+(*"+ 38 more open at anthropic, folded"*). Nothing is deleted — the rows stay in the
+table, and a cap that silently drops rows is the same sin as a silent filter.
 
-## Two sections
+## Five sections
 
 | | |
 |---|---|
 | **Sponsorship** | They will sponsor a visa, so relocation is the route. **Only explicit offers** — silence does not qualify, and neither does "relocation assistance" |
-| **Remote** | You stay where you are. Either the role is genuinely open worldwide, or they will engage a contractor, which needs no work permit |
+| **Remote** | You stay where you are. Either the role is genuinely open worldwide, or it is region-locked ("EU only") and they will engage a contractor, which needs no work permit. A *country*-locked role ("must be US-based") is not rescued by the contractor path |
+| **Europe** | Where the work is. Same route rules: a European role appears only with a sponsorship offer or a remote route |
+| **Gulf** | Silence counts as a route (employer-sponsored work visas are how expatriates are hired); a refusal or a nationals-only role does not |
+| **Pakistan** | No route needed |
 
-A posting can be in both, and the best ones are. Forcing one bucket would hide exactly the
-roles that will either relocate you *or* take you remote.
+A posting can be in several, and the best ones are. Forcing one bucket would hide exactly
+the roles that will either relocate you *or* take you remote.
 
 ## Run it
 
@@ -68,9 +114,10 @@ Needs **Python 3.11+** and two packages. Everything else is standard library.
 ```bash
 pip install -e ".[dev]"               # fastapi, uvicorn, pytest; puts `jobradar` on the path
 cp config.example.toml config.toml    # optional: contact address, CV and portfolio paths
+python scripts/fetch.py --dry-run     # offline, on the bundled fixtures, scratch data only
 python scripts/fetch.py               # crawl, filter, store
 job-radar                             # dashboard at http://127.0.0.1:8000 (or python -m jobradar.api)
-python -m pytest                      # 148 tests, offline, against a scratch data directory
+python -m pytest                      # 209 tests, offline, against a scratch data directory
 
 python scripts/probe_companies.py --wide   # which company boards are real
 ```
@@ -78,13 +125,15 @@ python scripts/probe_companies.py --wide   # which company boards are real
 `install.bat` puts a shortcut on the Desktop that does the fetch and opens the
 dashboard in one click.
 
-## Six tabs
+## Ten tabs
 
 | Tab | What it is for |
 |---|---|
 | **Today** | New since the last run, ranked. The only screen used daily |
 | **Sponsorship** | Explicit visa offers |
 | **Remote** | Global roles, and the contractor path |
+| **Europe / Gulf / Pakistan** | The same survivors, by where the work is |
+| **YC** | YC companies that are hiring, company-first, every open role |
 | **Killed** | Every rejection with the phrase that caused it — the trust screen |
 | **Pipeline** | What you applied to. Written by hand and by nothing else |
 | **Funnel** | The numbers above, for the last run |
@@ -122,6 +171,16 @@ source here.
 **No credential anywhere.** There is no auth argument in the HTTP layer, no token slot, no
 session. If a source needs a password, it is the wrong source.
 
+**robots.txt is obeyed, and every host is paced.** The HTTP layer reads each host's
+robots.txt before its first request (RFC 9309: a 4xx means no rules, a 5xx means stay out
+this run), never requests a disallowed URL, and leaves at least a second — or the host's
+`Crawl-delay` — between requests to one host. 429 and 5xx are retried with backoff and
+`Retry-After` is honoured up to a minute. The one source this removed is
+**SmartRecruiters**: `api.smartrecruiters.com/robots.txt` disallows every agent except
+LinkedInBot, so its three Pakistani employers (Devsinc, PureLogics, Securiti) are listed in
+`companies.BLOCKED` and are a manual check. Remotive, Jobicy and RemoteOK ask to be
+credited as the source; the dashboard shows the source on every row and links to their URL.
+
 ## The five filters are the actual product
 
 None of these live in the structured API fields. They are buried in job text.
@@ -147,7 +206,7 @@ contractor"*, answers **"find me clients"** instead of "find me a job".
 Contract work is accepted alongside employment, never instead of it — it is a badge and a
 ranking weight, and it never kills a posting.
 
-## Why the Pakistan tab is empty, with numbers
+## The Pakistan tab, with numbers
 
 It is not that the local sources could not be read. That was re-checked, and the
 earlier answer was wrong in two places:
@@ -157,18 +216,14 @@ earlier answer was wrong in two places:
   and full description in **one request**, and JobPosting JSON-LD on all 1,403 live job
   pages. It is now wired and runs on every crawl.
 - The employer probe asked **16 Pakistani companies, on two ATS providers**. Re-probing
-  **65 employers across six** — the five in `ats.py` were implemented but `fetch.py` only
-  ever called two of them — found **seven readable boards**: Devsinc, PureLogics and
-  Securiti on SmartRecruiters, Tajir on Ashby, Motive and Careem on Greenhouse, Educative
-  on Lever.
+  **65 employers across six** found **seven readable boards**: Tajir on Ashby, Motive and
+  Careem on Greenhouse, Educative on Lever — and Devsinc, PureLogics and Securiti on
+  SmartRecruiters, which are no longer read because its API's robots.txt forbids it.
 
-So Pakistan now contributes **332 postings** to a crawl instead of a handful. The tab is
-still empty, and this is the actual reason:
-
-> Of those 332, **five** have AI in the title. All five are killed by the role filter as
-> *"title is not a target role"* — and correctly: they are an automation architect for
-> GoHighLevel, a robotics field engineer, a video editor, and two marketing-automation
-> roles. Not one is an ML engineering job.
+In the replay above Pakistan keeps **five** postings: a data scientist, three AI
+automation roles and a robotics field engineer. None is an ML engineering job in the
+narrow sense; they are on screen because the role rule now reads "a domain word and a
+craft word" rather than an exact phrase, and the Killed tab is where to check that call.
 
 **Rozee.pk stays unread.** It is bigger than Mustakbil and every path, `robots.txt`
 included, answers with a Cloudflare managed challenge. Getting past that means
@@ -251,24 +306,30 @@ since the last run rather than showing the same list again.
 
 ```
 src/jobradar/
-  sources/      greenhouse, lever, the two aggregators, and one HTTP layer
+  sources/      ATS boards (greenhouse, lever, ats.py), key-free board APIs, HN,
+                Mustakbil, YC, registry.py, and one HTTP layer (robots, pacing, cache)
   filters/      the five filters, plus places.py — reading a location string
   posting.py    one shape, whatever the source was
   dedup.py      company as a hard barrier
-  pipeline.py   judge, route into the two sections, count the kills
+  pipeline.py   judge, route into the five sections, count the kills
   store.py      SQLite: what is new, and every rejection
-  api.py        FastAPI, 127.0.0.1 only
-  web/          the dashboard — five tabs, no build step
+  dryrun.py     the offline fixture run
+  api.py        FastAPI, 127.0.0.1 only, Host header checked
+  web/          the dashboard — ten tabs, no build step
 scripts/
-  fetch.py           the whole tool in one command
+  fetch.py           the whole tool in one command (--dry-run, --offline, --fresh)
+  fetch_yc.py        the YC directory and its boards
+  probe_companies.py which seeded slugs resolve
+  evaluate.py        scores against a hand-labelled set kept outside git (eval/)
   install-hooks.sh   the pre-push guard that keeps this private
+tests/fixtures/dryrun/  invented API responses for the dry run
 ```
 
 ## Where the AI is, and is not
 
 There is none, and the tool works. The five filters are regular expressions and word lists,
-which was the point: the deterministic half needs no GPU and already takes 3,764 postings
-down to 11.
+which was the point: the deterministic half needs no GPU and takes 9,898 postings down
+to 56 in the replay above.
 
 A local 14B reading the job text would improve the hard cases — a posting that explains its
 visa position in a paragraph rather than a phrase — and that is the next piece of work. The
