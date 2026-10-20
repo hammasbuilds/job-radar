@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from .ats import workplace_of
 from ..posting import Posting, clean
 from .http import get_json
 
@@ -69,6 +70,7 @@ def fetch(slug: str, company: str | None = None, **kw) -> list[Posting]:
                 text=body,
                 posted=_when(job.get("createdAt")),
                 remote_hint=_WORKPLACE.get((job.get("workplaceType") or "").lower()),
+                workplace=workplace_of(job.get("workplaceType")),
                 tags=tuple(
                     t for t in (cats.get("commitment"), cats.get("department"),
                                 cats.get("team")) if t

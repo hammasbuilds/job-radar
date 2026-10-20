@@ -55,6 +55,13 @@ def _when(value) -> datetime | None:
         return None
 
 
+def workplace_of(value) -> str:
+    """A board's workplace value ("OnSite", "on_site", "Hybrid", "remote") in one spelling."""
+    v = str(value or "").lower().replace("-", "").replace("_", "").replace(" ", "")
+    return {"remote": "remote", "hybrid": "hybrid", "onsite": "onsite",
+            "inoffice": "onsite", "office": "onsite"}.get(v, "")
+
+
 def ashby(slug: str, company: str | None = None, **kw) -> list[Posting]:
     """Ashby. What the newer YC companies use, and a plain GET."""
     payload = get_json(ASHBY.format(slug=slug), **kw)
@@ -71,7 +78,10 @@ def ashby(slug: str, company: str | None = None, **kw) -> list[Posting]:
                 url=job.get("jobUrl") or job.get("applyUrl", ""),
                 text=clean(job.get("descriptionHtml") or job.get("descriptionPlain")),
                 posted=_when(job.get("publishedAt") or job.get("updatedAt")),
-                remote_hint=bool(job.get("isRemote")),
+                # isRemote is True for hybrid jobs too; workplaceType is the real answer.
+                remote_hint=(job.get("workplaceType") == "Remote") if job.get("workplaceType")
+                else bool(job.get("isRemote")),
+                workplace=workplace_of(job.get("workplaceType")),
                 tags=tuple(t for t in (job.get("employmentType"),
                                        job.get("department"),
                                        job.get("team")) if t),
@@ -129,6 +139,7 @@ def workable(slug: str, company: str | None = None, **kw) -> list[Posting]:
                 text=clean(job.get("description")),
                 posted=_when(job.get("published_on") or job.get("created_at")),
                 remote_hint=bool(job.get("remote") or where.get("workplace") == "remote"),
+                workplace=workplace_of(job.get("workplace") or where.get("workplace")),
                 tags=tuple(t for t in (job.get("employment_type"),
                                        job.get("department")) if t),
             )
@@ -194,6 +205,8 @@ def recruitee(slug: str, company: str | None = None, **kw) -> list[Posting]:
             text=clean(job.get("description")),
             posted=_when(job.get("published_at")),
             remote_hint=bool(job.get("remote")),
+            workplace=("hybrid" if job.get("hybrid") else "remote" if job.get("remote")
+                       else "onsite" if job.get("on_site") else ""),
             tags=tuple(t for t in (job.get("employment_type_code"),
                                    job.get("department")) if t),
         )

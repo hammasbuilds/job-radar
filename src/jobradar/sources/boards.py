@@ -273,8 +273,13 @@ def hn_roles(body: str) -> tuple[str, list[str], str]:
         company = found.group(1)
     else:
         company = ""
-    company = company.strip()
-    company = _URL.sub("", company).strip(" -–—,") or "(unnamed, HN thread)"
+    company = _URL.sub("", company.strip()).strip(" -–—,:")
+    # A first field that is a role is not the company: "DevOps Engineer (QVAC):" is QVAC's
+    # role list, and "Founding Engineer (Security / AI ...) — Stealth" names no company.
+    if _ROLE_WORD.search(company) or len(company) > 60:
+        inner = re.search(r"\(([A-Z][A-Za-z0-9&.\- ]{1,30})\)", company)
+        company = inner.group(1) if inner and not _ROLE_WORD.search(inner.group(1)) else ""
+    company = company or "(unnamed, HN thread)"
 
     roles: list[str] = []
     places: list[str] = []

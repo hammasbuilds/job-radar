@@ -50,6 +50,13 @@ class RecentCompany:
         return asdict(self)
 
 
+def _website(url) -> str:
+    """The company's site, or "" when the mirror's value names no real host ("https://brumby")."""
+    url = str(url or "").strip()
+    host = re.sub(r"^https?://", "", url).split("/")[0]
+    return url if "." in host else ""
+
+
 def batches_since(year: int, **kw) -> list[tuple[str, str]]:
     meta = get_json(META, **kw) or {}
     out = []
@@ -81,7 +88,7 @@ def recent(years: int = 3, **kw) -> list[RecentCompany]:
             out.append(RecentCompany(
                 slug=slug, name=(row.get("name") or slug).strip(), batch=name,
                 batch_year=int(year.group(1)) if year else 0,
-                website=row.get("website") or "",
+                website=_website(row.get("website")),
                 yc_url=YC_PAGE.format(slug=slug),
                 jobs_url=YC_PAGE.format(slug=slug) + "/jobs",
                 hiring=bool(row.get("isHiring")), status=row.get("status") or "",

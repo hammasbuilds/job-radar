@@ -59,6 +59,9 @@ _CRAFT = re.compile(
     re.I,
 )
 
+# The crafts that, alone in a title's head, already name a whole job.
+_JOB_CRAFT = re.compile(r"\b(?:engineers?|developers?|programmer|architect)\b", re.I)
+
 # Titles that name a domain and a craft and are still not the job. Checked
 # against every match, named or compositional. "Sales Engineer" and
 # "Solutions Architect" sit in front of customers; a "Value Engineer" is
@@ -68,7 +71,7 @@ _NOT_THE_JOB = re.compile(
     r"\b(?:sales|pre[- ]sales|account|customer|support|solutions?|marketing|"
     r"recruit\w*|teacher|tutor|trainer|instructor|intern(?:ship)?|advocate|"
     r"developer relations|devrel|evangelist|value|economist|economics|policy|"
-    r"legal|counsel|ux|user experience|designer|commercial|partner|partnerships|"
+    r"legal|counsel|ux|user experience|designer|commercial|partner|partnerships|consultants?|"
     r"go[- ]to[- ]market|gtm|therap\w*|clinical|nurse|writer|editor|people)\b",
     re.I,
 )
@@ -135,13 +138,46 @@ def role_match(title: str) -> str | None:
         return None
     named = _match(head)
     if named:
-        return named
+        return _unless_another_science(named, title)
+    # A head that already names a craft with no AI word is that job: "Salesforce Developer -
+    # Service Cloud & AI" is a Salesforce developer, and "Full-Stack Developer | AI Tools" a
+    # full-stack one. The whole-title fallback below found "AI" and "Developer" in both.
+    # Unless the qualifier straight after the head is the domain itself ("Field Engineer -
+    # Robotics And AI"), and never for a programme head ("Fellows Program, ML Systems").
+    parts = _QUALIFIER_SPLIT.split(title.strip())
+    following = parts[1] if len(parts) > 1 else ""
+    if (_JOB_CRAFT.search(head) and not _DOMAIN.search(head)
+            and not _DOMAIN.match(following.strip())):
+        return None
     # The role is not readable from the head alone (a Hacker News header, a
     # title that starts with the team), so the whole title is judged, and
     # then a veto word anywhere counts.
     if _NOT_THE_JOB.search(title):
         return None
-    return _match(title)
+    found = _match(title)
+    return _unless_another_science(found, title) if found else None
+
+
+# A research title is generic; its field decides. "Research Fellow (Ecology/Biogeochemistry/
+# Soil Science/...)" is a research post in another science, not an AI one.
+_GENERIC_RESEARCH = {"research fellow", "research scientist", "researcher", "research engineer",
+                     "postdoctoral researcher", "research associate", "research assistant"}
+_OTHER_SCIENCE = re.compile(
+    r"\b(?:ecology|biogeochemistry|earth|soil|environmental|hydrology|geology|chemistry|"
+    r"chemical|biology|biological|physics|materials science|economics|finance|history|"
+    r"psychology|sociology|linguistics|agriculture|marine|climate science|cybersecurity|"
+    r"civil|mechanical|nursing|medicine|pharmacy)\b",
+    re.I,
+)
+_AI_FIELD = re.compile(
+    r"\b(?:a\.?i\.?|ml|machine learning|deep learning|llms?|nlp|computer vision|robotics|"
+    r"neural|generative|reinforcement learning|rl|data science)\b", re.I)
+
+
+def _unless_another_science(role: str, title: str) -> str | None:
+    if role in _GENERIC_RESEARCH and _OTHER_SCIENCE.search(title) and not _AI_FIELD.search(title):
+        return None
+    return role
 
 
 def score(posting) -> tuple[float, str]:

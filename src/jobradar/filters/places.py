@@ -55,7 +55,19 @@ CITY_COUNTRY = {
     "vilnius": "lithuania", "riga": "latvia",
     "new york": "usa", "san francisco": "usa", "seattle": "usa", "austin": "usa",
     "boston": "usa", "chicago": "usa", "los angeles": "usa", "denver": "usa",
-    "toronto": "canada", "vancouver": "canada", "montreal": "canada",
+    # The Bay Area and the other US hubs postings name without a state or country. Without
+    # them 35 US roles ("San Jose", "New York City", "US-CA-Menlo Park") sat in the target
+    # lens as "country not stated".
+    "new york city": "usa", "nyc": "usa", "brooklyn": "usa", "san jose": "usa",
+    "sunnyvale": "usa", "san mateo": "usa", "palo alto": "usa", "menlo park": "usa",
+    "redwood city": "usa", "mountain view": "usa", "cupertino": "usa", "santa clara": "usa",
+    "oakland": "usa", "berkeley": "usa", "bay area": "usa", "san francisco bay": "usa",
+    "sf": "usa", "bellevue": "usa", "redmond": "usa", "washington dc": "usa",
+    "atlanta": "usa", "miami": "usa", "san diego": "usa", "pittsburgh": "usa",
+    "philadelphia": "usa", "houston": "usa", "dallas": "usa", "salt lake city": "usa",
+    "boulder": "usa", "raleigh": "usa",
+    "toronto": "canada", "vancouver": "canada", "montreal": "canada", "ottawa": "canada",
+    "waterloo": "canada", "calgary": "canada", "edmonton": "canada",
     "tel aviv": "israel", "bangalore": "india", "bengaluru": "india",
     "mumbai": "india", "delhi": "india", "hyderabad": "india", "pune": "india",
     "singapore": "singapore", "sydney": "australia", "melbourne": "australia",
@@ -282,7 +294,7 @@ _FILLER = {
 # A spaced hyphen separates as surely as a comma — "Remote - EU" is the same
 # statement as "Remote, EU" — but an unspaced one is part of a name, so
 # "Guinea-Bissau" and "on-site" must survive intact.
-_SPLIT = re.compile(r"\s*(?:,|/|\||;|\bor\b|\band\b|·|—|–|\s-\s)\s*")
+_SPLIT = re.compile(r"\s*(?:,|/|\||;|&|\bor\b|\band\b|·|—|–|\s-\s)\s*")
 _PARENS = re.compile(r"\(([^)]*)\)")
 
 
@@ -310,6 +322,9 @@ _US_STATE_NAMES = re.compile(
     r"arizona|maryland|connecticut|tennessee|missouri|wisconsin)\b")
 
 
+_WORKDAY_US = re.compile(rf"\bus-(?:{'|'.join(_US_STATES)})-")
+
+
 def tokens(location: str) -> list[str]:
     """Split a location string into comparable place tokens.
 
@@ -320,6 +335,8 @@ def tokens(location: str) -> list[str]:
     text = (location or "").strip().lower()
     if not text:
         return []
+    # Workday's "US-CA-Menlo Park" / "US-WA-Bellevue".
+    text = _WORKDAY_US.sub("usa, ", text)
     text = _CITY_STATE.sub(_city_state, text)
     text = _US_STATE_NAMES.sub("usa", text)
     inner = _PARENS.findall(text)
@@ -339,7 +356,7 @@ _QUALIFIER = re.compile(
 
 
 def _trim(part: str) -> str:
-    return _QUALIFIER.sub(" ", part).strip(" .()-,").strip()
+    return _QUALIFIER.sub(" ", part).strip(" .()-,*").strip()
 
 
 def classify(location: str) -> tuple[str, str]:

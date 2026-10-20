@@ -98,6 +98,11 @@ _NATIONALS = (
     re.compile(r"\b(?:security|government|secret|top secret|ts/sci) clearance (?:is )?(?:required|mandatory)"),
     re.compile(r"\bus persons?\b|\bitar\b"),
     re.compile(r"\bgreen card holders?\b|\bpermanent residents?\b"),
+    # Singapore and Malaysia write it as "Citizens or SPR" / "Singaporean or PR" / "Malaysian only".
+    re.compile(r"\b(?:singapore(?:an)?|malaysian?) citizens?(?: or| and|/| &) ?(?:s?pr|permanent)\b"
+               r"|\bsingaporeans?(?: or| and|/) ?(?:s?pr)\b|\b(?:open to|only for) "
+               r"(?:singapore(?:an)?|malaysian|emirati|saudi|qatari) (?:citizens|nationals)\b"
+               r"|\b(?:malaysians?|singaporeans?|emiratis?|saudis?) only\b"),
 )
 # Equal-opportunity boilerplate names citizenship as something *not* held
 # against you. It is the opposite of a restriction.

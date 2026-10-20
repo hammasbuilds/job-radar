@@ -306,3 +306,155 @@ def test_paid_ai_training_work_is_its_own_lane_and_ordinary_trainers_are_not():
     assert "Gym" not in lane
     # An engineer on an annotation team is an engineer, not data work.
     assert lane.get("Labelco") not in (None, families.DATA_WORK)
+
+
+def test_the_boards_own_workplace_field_beats_the_prose(monkeypatch):
+    from jobradar.filters import remote
+    from jobradar.sources import ats
+
+    payload = {"name": "Cusp", "jobs": [
+        {"title": "ML Engineer", "location": "Amsterdam", "jobUrl": "https://j/1",
+         "descriptionPlain": "Remote-friendly team.", "isRemote": True,
+         "workplaceType": "Hybrid"},
+        {"title": "ML Engineer", "location": "Belgrade", "jobUrl": "https://j/2",
+         "descriptionPlain": "Join us.", "isRemote": True, "workplaceType": "Remote"},
+        {"title": "ML Engineer", "location": "Dubai", "jobUrl": "https://j/3",
+         "descriptionPlain": "Remote work possible.", "isRemote": False,
+         "workplaceType": "OnSite"},
+    ]}
+    monkeypatch.setattr(ats, "get_json", lambda url, **kw: payload)
+    hybrid, remote_job, onsite = ats.ashby("cusp")
+    # Ashby flags hybrid jobs isRemote=True; its workplaceType is the answer.
+    assert hybrid.workplace == "hybrid" and hybrid.remote_hint is False
+    assert remote.classify(hybrid)[0] == remote.HYBRID
+    assert remote.classify(remote_job)[0] in (remote.GLOBAL, remote.REGION, remote.COUNTRY)
+    assert remote.classify(onsite)[0] == remote.ONSITE
+
+
+def test_remote_procedure_calls_are_not_remote_work():
+    from jobradar.filters import remote
+
+    rpc = job("Agentic AI Engineer", "", "Build services over Remote Procedure Calls (RPC) "
+              "and remote sensing data.")
+    assert remote.classify(rpc)[0] not in (remote.GLOBAL, remote.REGION, remote.COUNTRY)
+    assert remote.classify(job("ML Engineer", "", "This is a remote role."))[0] == remote.REGION
+
+
+@pytest.mark.parametrize(("title", "text", "tags", "expected"), [
+    ("AI Engineer", "Full-time role. Benefits: project-based skill transfer.", (), arrangement.FULL_TIME),
+    ("AI Engineer", "We serve project-based industries.", ("Full Time",), arrangement.FULL_TIME),
+    ("ML Engineer", "This is a 12-month fixed-term contract.", (), arrangement.CONTRACT),
+    ("ML Engineer", "A 3-month contract to start.", (), arrangement.SMALL),
+    ("AI Tutor", "Paid hourly. Set your own schedule.", (), arrangement.SMALL),
+    ("Data Annotator", "Work on a project basis.", (), arrangement.SMALL),
+])
+def test_small_contract_needs_the_arrangement_not_a_stray_phrase(title, text, tags, expected):
+    from jobradar.filters import employment
+
+    p = job(title, "", text, tags=tags)
+    assert arrangement.terms(p, employment.classify(p)[0])[0] == expected
+
+
+def test_worldwide_remote_work_is_open_even_without_sponsorship():
+    tutor = job("AI Tutor - Croatian", "Remote International",
+                "Tutor roles may be performed remotely from any location worldwide. For US-based "
+                "candidates, please note that we are unable to hire in Wyoming. We are unable to "
+                "provide visa sponsorship. US-based candidates: $35/hour.", company="xai")
+    v = pipeline.judge(tutor)
+    assert v["scope"] == "global"
+    assert pipeline.route(v)[0] == ["remote"]
+
+
+@pytest.mark.parametrize("text", [
+    "This role is open to Singapore Citizens or SPR only.",
+    "Applicants must be Singaporean or PR.",
+    "Malaysians only.",
+])
+def test_south_east_asian_citizens_only_wording_closes_the_route(text):
+    v = pipeline.judge(job("Computer Vision Engineer", "Singapore", text))
+    assert pipeline.route(v) == ([], "citizens / nationals only")
+
+
+@pytest.mark.parametrize(("title", "years"), [
+    ("Full-Stack Engineer (5년 이상)", 5),
+    ("AI Engineer (경력 7년 이상)", 7),
+    ("ML Engineer 5+ years", 5),
+    ("ML Engineer (3 years minimum)", 3),
+    ("Machine Learning Engineer II", None),
+    ("ML Engineer, Model Year 2027", None),
+])
+def test_years_written_in_the_title_are_read(title, years):
+    from jobradar.filters import seniority
+
+    assert seniority.years_in_title(title) == years
+
+
+def test_a_title_asking_for_five_years_leaves_the_junior_lens():
+    kept, funnel = pipeline.run([job("AI Engineer (5년 이상)", "Seoul, South Korea",
+                                     "We will sponsor your visa.")])
+    assert not funnel.lens
+
+
+@pytest.mark.parametrize(("title", "is_target"), [
+    ("Salesforce Developer - Service Cloud, Experience Cloud & AI (100% Remote within Poland)", False),
+    ("Full-Stack Developer | Mid-Senior | AI Tools", False),
+    ("Software Engineer - Backend + AI", False),
+    ("Research Fellow (Ecology/Biogeochemistry/Earth/Soil Science/Hydrology/Computer Science)", False),
+    ("Cybersecurity Consultant (AI), Cybersecurity Engineering Centre", False),
+    ("Research Fellow (AI for Materials)", True),
+    ("Field Engineer - Robotics And AI", True),
+    ("Software Engineer, Machine Learning", True),
+    ("Research Engineer, Cybersecurity RL (Reinforcement Learning)", True),
+])
+def test_an_ai_word_in_the_tail_does_not_make_another_job_an_ai_one(title, is_target):
+    from jobradar.filters import fit
+
+    assert bool(fit.role_match(title)) is is_target
+
+
+@pytest.mark.parametrize(("location", "countries"), [
+    ("*HQ - San Francisco, CA", ["United States"]),
+    ("US-CA-Menlo Park", ["United States"]),
+    ("San Mateo", ["United States"]),
+    ("Ottawa", ["Canada"]),
+    ("London & San Francisco", ["United Kingdom", "United States"]),
+    ("R&D Centre, Munich", ["Germany"]),
+])
+def test_us_and_canadian_hubs_are_placed_so_they_leave_the_target_lens(location, countries):
+    assert places.countries_of(location) == countries
+
+
+@pytest.mark.parametrize(("body", "company"), [
+    ("DevOps Engineer (QVAC): | AI Inference Engineer (QVAC) | Remote", "QVAC"),
+    ("Founding Engineer (Security / AI / Distributed Systems) — Stealth Project\nWe hire.",
+     "(unnamed, HN thread)"),
+    ("Rebar | Software Engineer, Applied AI | New York", "Rebar"),
+])
+def test_a_hacker_news_role_is_not_read_as_the_company(body, company):
+    from jobradar.sources.boards import hn_roles
+
+    assert hn_roles(body)[0] == company
+
+
+@pytest.mark.parametrize(("company", "public"), [
+    ("Northern University Nowshera", False),
+    ("Beaconhouse National University", False),
+    ("University of the Punjab", True),
+    ("COMSATS University Islamabad", True),
+    ("National University of Modern Languages", True),
+])
+def test_a_university_is_public_sector_only_when_it_is_a_public_one(company, public):
+    assert families.is_public_computing("Lecturer Computer Science", company) is public
+
+
+def test_image_and_video_generation_is_generative_ai():
+    assert families.classify("Member of Technical Staff - Image / Video Generation")[0] == \
+        families.GENAI
+    assert families.classify("Computer Vision Engineer")[0] == families.CV
+
+
+def test_korean_years_in_the_body_are_read():
+    from jobradar.filters import seniority
+
+    assert seniority.korean_years("자격요건: 관련 경력 2년 이상") == 2
+    assert seniority.korean_years("3년 계약직") is None

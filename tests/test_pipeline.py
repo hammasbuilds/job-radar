@@ -127,7 +127,7 @@ def test_an_explicit_sponsor_lands_in_the_sponsorship_section():
 
 def test_silence_does_not_qualify_as_sponsorship():
     where, reason = pipeline.route(verdict(remote.ONSITE, authorisation.SILENT))
-    assert where == [] and reason == "onsite, sponsorship not offered"
+    assert where == [] and reason == "onsite, sponsorship not mentioned"
 
 
 def test_a_relocation_hint_is_not_sponsorship_either():
@@ -170,7 +170,7 @@ def test_the_europe_tab_obeys_the_route_rules():
     where, reason = pipeline.route(verdict(remote.ONSITE, authorisation.REFUSES, regions=["europe"]))
     assert where == [] and reason == "refuses sponsorship"
     where, reason = pipeline.route(verdict(remote.ONSITE, authorisation.SILENT, regions=["europe"]))
-    assert where == [] and reason == "onsite, sponsorship not offered"
+    assert where == [] and reason == "onsite, sponsorship not mentioned"
     where, _ = pipeline.route(verdict(remote.ONSITE, authorisation.SPONSORS, regions=["europe"]))
     assert set(where) == {pipeline.SPONSORSHIP, pipeline.EUROPE}
 

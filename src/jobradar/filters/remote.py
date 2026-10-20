@@ -45,6 +45,8 @@ _GLOBAL = (
     r"fully remote,? (?:from )?anywhere",
     r"remote[, ]+(?:from )?anywhere in the world",
     r"anywhere in the world",
+    r"remote(?:ly)? from any location",
+    r"from any location worldwide",
     r"globally remote",
     r"remote \(global\)",
     r"location[- ]independent",
@@ -92,8 +94,11 @@ _COUNTRY = tuple(
     # role, must be US-based" was rescued into the Remote tab by the contractor
     # path, which exists for "EU only", not for one named country. "A US-based
     # company" describes the employer, not the hire, and is left alone.
-    r"\b(?:us|usa|united states|uk|canada)[- ](?:only|based)\b"
-    r"(?!\s+(?:company|startup|team|firm|business|organi[sz]ation|employer|clients?|customers?))",
+    # "For US-based candidates, we cannot hire in Wyoming" qualifies one group of hires; it
+    # does not lock the job to the US (xAI's tutors are "remote from any location worldwide").
+    r"(?<!for )\b(?:us|usa|united states|uk|canada)[- ](?:only|based)\b"
+    r"(?!\s+(?:company|startup|team|firm|business|organi[sz]ation|employer|clients?|customers?|"
+    r"candidates?|applicants?|employees?|hires?|workers?|contractors?|tutors?))",
     r"authoriz(?:ed|ation) to work in the (?:us|united states|uk)\b",
     r"\bresidents? of \w+ only",
     r"you (?:must|will need to) (?:hold|have) (?:a|the) right to work in \w+",
@@ -120,7 +125,11 @@ _ONSITE = (
     r"fully (?:office|onsite)[- ]based",
 )
 
-_REMOTE_WORD = re.compile(r"\bremote\b|\bwork from home\b|\bwfh\b|\bdistributed team\b")
+# "Remote Procedure Calls", "remote sensing" and "remote monitoring" are technology, not a
+# workplace: one Singapore onsite job was filed Remote on "Remote Procedure Calls (RPC)".
+_REMOTE_WORD = re.compile(
+    r"\bremote\b(?![- ](?:procedure|sensing|sensor|monitoring|control|access|desktop|"
+    r"diagnostics|operations? cent))|\bwork from home\b|\bwfh\b|\bdistributed team\b")
 
 
 def _hit(patterns, text: str) -> str | None:
@@ -160,6 +169,24 @@ def classify(posting) -> tuple[str, str]:
     """
     text = posting.haystack
 
+    # The job board's own workplace field outranks the prose: it is what the employer picked
+    # from a menu. It only says remote or not, so a remote job's scope (worldwide, a region,
+    # one country) is still read from the text.
+    said = getattr(posting, "workplace", "")
+    if said == "hybrid":
+        return HYBRID, "the job board lists it as hybrid"
+    if said == "onsite":
+        return ONSITE, "the job board lists it as on-site"
+    if said == "remote":
+        scope, why = _from_text(posting, text)
+        if scope in (GLOBAL, REGION, COUNTRY):
+            return scope, why
+        return REGION, "the job board lists it as remote; no scope stated"
+    return _from_text(posting, text)
+
+
+def _from_text(posting, text: str) -> tuple[str, str]:
+    """The workplace as the location field and the prose state it."""
     # The location field first when it states a bare place. It is the most
     # reliable signal any source gives and it is structured, so no prose
     # pattern can beat it — and an onsite phrase elsewhere in the body should

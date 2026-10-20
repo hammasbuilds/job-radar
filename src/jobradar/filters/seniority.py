@@ -172,6 +172,30 @@ def _value(raw: str) -> int | None:
     return value if value is not None and 0 < value <= 25 else None
 
 
+# A title that states the years: "Full-Stack Engineer (5년 이상)" (Korean: 5 years or more),
+# "AI Engineer (경력 7년 이상)", "ML Engineer 5+ years". The body rule never read titles, so
+# Krafton's 5/7/10-year roles showed "experience: not stated" in a junior list.
+_TITLE_YEARS = re.compile(
+    r"(?:경력\s*)?(\d{1,2})\s*년\s*(?:이상)?|\b(\d{1,2})\s*\+\s*(?:years?|yrs?)\b|"
+    r"\b(\d{1,2})\s*(?:years?|yrs?)\s*(?:\+|or more|minimum|min\.?)", re.I)
+
+
+def years_in_title(title: str) -> int | None:
+    found = [int(next(g for g in m.groups() if g)) for m in _TITLE_YEARS.finditer(title or "")]
+    return max(found) if found else None
+
+
+# "경력 2년 이상" / "2년 이상" in a Korean posting's body: N years or more of experience. Read
+# only with 이상 ("or more") or 경력 ("experience") next to it, so "3년 계약" (a 3-year term) is
+# not taken for a requirement.
+_KOREAN_YEARS = re.compile(r"경력\s*(\d{1,2})\s*년|(\d{1,2})\s*년\s*이상")
+
+
+def korean_years(text: str) -> int | None:
+    found = [int(a or b) for a, b in _KOREAN_YEARS.findall(text or "")]
+    return max(found) if found else None
+
+
 def years_required(text: str) -> int | None:
     """The experience the posting requires, in years, or None if it states none."""
     required: list[int] = []

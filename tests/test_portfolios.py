@@ -118,3 +118,31 @@ def test_saving_replaces_a_portfolio_but_a_failed_read_keeps_the_last_copy(tmp_p
     assert conn.execute("SELECT COUNT(*) FROM portfolio_company").fetchone()[0] == 3
     conn.close()
     assert store.portfolio_age_hours(db) < 1
+
+
+def test_open_now_counts_whole_names_and_only_contract_work_for_platforms(tmp_path):
+    db = tmp_path / "radar.sqlite3"
+    conn = store.connect(db)
+    rows = [
+        ("1", "Asm Front-End Manufacturing Singapore", "ML Engineer", "Other AI", "Full-time"),
+        ("2", "Turing", "AI Trainer", "AI data work (contract)", "Small contract"),
+        ("3", "Mercor", "Staff Engineer, New York", "Other AI", "Full-time"),
+        ("4", "Mercor", "Model Evaluator", "AI data work (contract)", "Contract"),
+    ]
+    with conn:
+        for i, company, title, family, terms in rows:
+            conn.execute(
+                "INSERT INTO lens (id, source, company, title, url, family, track, countries, "
+                "regions, workplace, terms, route, score, at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (i, "t", company, title, f"https://j/{i}", family, "Engineer", "[]", "[]",
+                 "Remote", terms, "remote", 0.5, "t"))
+    conn.close()
+    store.save_directory([
+        {"kind": "AI work platform", "name": "Turing", "url": "https://turing.com", "match": "turing"},
+        {"kind": "AI work platform", "name": "Mercor", "url": "https://mercor.com", "match": "mercor"},
+    ], db)
+    conn = sqlite3.connect(db)
+    live = dict(conn.execute("SELECT name, live FROM directory"))
+    conn.close()
+    assert live == {"Turing": 1, "Mercor": 1}

@@ -22,6 +22,7 @@ from __future__ import annotations
 import urllib.parse
 from datetime import UTC, datetime
 
+from .ats import workplace_of
 from ..posting import Posting, clean
 from .http import SourceError, get_json
 
@@ -83,6 +84,7 @@ def workable_search(pages: int = 6, queries=QUERIES, _base: str = "", **kw) -> l
                                                       job.get("benefitsSection"))))),
                     posted=_iso(job.get("created")),
                     remote_hint=workplace == "remote",
+                    workplace=workplace_of(workplace),
                     tags=tuple(filter(None, (job.get("employmentType"), workplace))),
                 ))
             token = payload.get("nextPageToken")

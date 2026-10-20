@@ -18,15 +18,23 @@ FULL_TIME, CONTRACT, SMALL, UNSTATED = "Full-time", "Contract", "Small contract"
 
 _SMALL = re.compile(
     # Each phrase names the work arrangement itself. Bare "short term" matched Anthropic's
-    # "In the short term, we have focused on..." and made a research role a small contract.
+    # "In the short term, we have focused on..." and made a research role a small contract;
+    # bare "project-based" matched "project-based skill transfer" in a full-time job's benefits.
     r"\b(?:(?:paid )?hourly (?:rate|pay|basis|wage|contract)|paid hourly|"
     r"per hour|/\s?h(?:ou)?r\b|"
     r"short[- ]term (?:contract|project|role|position|engagement|assignment|work|gig)|"
-    r"\d+[- ]?(?:to[- ]\d+[- ]?)?(?:week|month)s?[- ](?:contract|project|"
-    r"engagement|assignment)|project[- ]based|task[- ]based|per task|gig|"
+    r"\d+[- ]?(?:to[- ]\d+[- ]?)?weeks?[- ](?:contract|project|engagement|assignment)|"
+    r"on a (?:per[- ])?project basis|"
+    r"project[- ]based (?:contract|role|position|engagement|work|assignment|basis|pay)|"
+    r"task[- ]based (?:work|pay|contract)|per task|gig work|"
     r"set your own (?:hours|schedule)|freelance project)\b",
     re.I,
 )
+# "3-month contract" is small; "12-month fixed-term contract" is an ordinary contract job.
+_MONTHS = re.compile(
+    r"\b(\d{1,2})[- ]?(?:to[- ](\d{1,2})[- ]?)?months?[- ](?:fixed[- ]term )?"
+    r"(?:contract|project|engagement|assignment)\b", re.I)
+SMALL_MONTHS = 6
 _FULL = re.compile(r"\b(?:full[- ]time|permanent|fulltime|unbefristet|vollzeit)\b", re.I)
 
 
@@ -65,14 +73,22 @@ def terms(posting, form: str) -> tuple[str, str]:
     part = _PART.search(head) or _PART_BODY.search(posting.text or "")
     if part:
         return SMALL, part.group(0)
+    # The board's own employment type outranks a phrase in the body: a role the employer
+    # tagged full-time is not a small contract because its benefits mention a project.
+    tagged_full = _FULL.search(head.replace("_", "-").replace("FullTime", "full-time"))
     blob = " ".join([head, posting.text or ""])
-    small = _SMALL.search(blob)
-    if small:
-        return SMALL, small.group(0)
-    for hours in _HOURS.finditer(blob):
-        most = int(hours.group(2) or hours.group(1))
-        if most <= 30:
-            return SMALL, hours.group(0)
+    if not tagged_full:
+        small = _SMALL.search(blob)
+        if small:
+            return SMALL, small.group(0)
+        for hours in _HOURS.finditer(blob):
+            most = int(hours.group(2) or hours.group(1))
+            if most <= 30:
+                return SMALL, hours.group(0)
+        for months in _MONTHS.finditer(blob):
+            if int(months.group(2) or months.group(1)) <= SMALL_MONTHS:
+                return SMALL, months.group(0)
+            return CONTRACT, months.group(0)
     if form in (employment.CONTRACTOR, employment.EITHER):
         return CONTRACT, "contract or freelance welcome"
     full = _FULL.search(blob)

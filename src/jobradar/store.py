@@ -17,6 +17,7 @@ later, without re-running anything.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sqlite3
 from datetime import UTC, datetime
@@ -793,12 +794,21 @@ def save_directory(entries: list[dict], path: Path | None = None) -> None:
                 live = 0
                 if pattern:
                     # For a fellowship only its programme postings count: Anthropic's other
-                    # three hundred roles are not the Fellows Program.
-                    only = " AND family = 'Fellowship / programme'" \
-                        if e["kind"] == "Fellowship / paid programme" else ""
-                    live = conn.execute(
-                        "SELECT COUNT(*) FROM lens WHERE lower(company) LIKE ?" + only,
-                        (f"%{pattern}%",)).fetchone()[0]
+                    # three hundred roles are not the Fellows Program. For an AI work platform
+                    # only its contract and training work: Mercor's own New York staff job is
+                    # not work on Mercor.
+                    only = {
+                        "Fellowship / paid programme": " AND family = 'Fellowship / programme'",
+                        "AI work platform": " AND (family = 'AI data work (contract)'"
+                                            " OR terms IN ('Small contract', 'Contract'))",
+                    }.get(e["kind"], "")
+                    # The name as whole words: "turing" as a substring counted
+                    # "Asm Front-End Manufacturing Singapore" as a Turing posting.
+                    word = re.compile(rf"(?<![a-z0-9]){re.escape(pattern)}(?![a-z0-9])")
+                    live = sum(
+                        1 for (company,) in conn.execute("SELECT company FROM lens WHERE 1" + only)
+                        if word.search((company or "").lower())
+                    )
                 conn.execute(
                     """INSERT OR REPLACE INTO directory (kind, name, url, jobs_url, region,
                        what, pay, pay_source, who, match, live, at)

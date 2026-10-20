@@ -35,7 +35,9 @@ ALL = (*FAMILIES, OTHER, PROGRAM, PUBLIC, DATA_WORK)
 # rule: a data-work noun, next to an AI word.
 _DATA_NOUN = re.compile(
     r"\b(?:trainers?|tutors?|annotators?|annotation|label(?:l)?ers?|label(?:l)?ing|raters?|"
-    r"evaluators?|red[- ]teamers?|quality analysts?|response writers?|prompt writers?)\b",
+    r"evaluators?|red[- ]teamers?|quality analysts?|response writers?|prompt writers?|"
+    # Askable's "AI Coding Tasks": paid per task, remote from anywhere.
+    r"(?:coding|writing|reasoning) tasks?)\b",
     re.I,
 )
 _DATA_AI = re.compile(
@@ -50,9 +52,17 @@ def is_data_work(title: str) -> bool:
 # Government, university and state-enterprise employers in Pakistan, and the computing titles
 # they advertise. Their posts are rarely titled "ML engineer" ("Assistant Director (IT)",
 # "Lecturer Computer Science"), so this lane has its own title rule.
+# A bare "university" or "institute" is not public: Northern University Nowshera is private and
+# was listed as public sector. Universities count when the name says they are the state's or
+# they are among the federal and provincial public ones named here.
 _PUBLIC_EMPLOYER = re.compile(
     r"\b(?:government|govt|ministry|division|authority|commission|board|council|directorate|"
-    r"department|corporation|university|institute|college|academy|cantonment|municipal|"
+    r"department|corporation|cantonment|municipal|public sector university|"
+    r"university of (?:the punjab|karachi|peshawar|sindh|balochistan|engineering and technology|"
+    r"agriculture|education|health sciences|veterinary)|uet|quaid[- ]i[- ]azam|"
+    r"bahauddin zakariya|allama iqbal open|virtual university|air university|"
+    r"bahria university|national university of (?:sciences and technology|modern languages|"
+    r"technology)|federal urdu|islamia university|"
     r"metropolitan|district|federal|provincial|punjab|sindh|khyber|balochistan|gilgit|"
     r"nadra|paec|suparco|nust|pieas|comsats|wapda|pta|secp|sbp|state bank|nescom|hec|"
     r"higher education|ignite|pitb|kpitb|nitb|pseb|ncai|nastp|pcsir|pakistan science)\b",
@@ -76,7 +86,11 @@ ENGINEER = "Engineer"
 RESEARCHER = "Researcher"
 
 _RULES = (
-    (CV, r"\b(?:computer[- ]vision|cv|vision|perception|image|video|3d|multimodal|vlm)\b"),
+    # Making images or video is generative work even though it names images: Black Forest Labs'
+    # "Image / Video Generation" was filed Computer Vision and a GenAI filter missed it.
+    (GENAI, r"\b(?:image|video|audio|speech|music|3d)(?:\s*/\s*\w+)?\s+generation\b|"
+            r"\btext[- ]to[- ](?:image|video|speech|3d)\b"),
+    (CV,r"\b(?:computer[- ]vision|cv|vision|perception|image|video|3d|multimodal|vlm)\b"),
     (AGENTIC, r"\b(?:agentic|agents?|autonomous agents?|multi[- ]agent)\b"),
     (GENAI, r"\b(?:generative|gen[- ]?ai|llms?|large language|foundation models?|"
             r"diffusion|genai|prompt)\b"),

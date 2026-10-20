@@ -116,6 +116,10 @@ class Posting:
     text: str                    # the full description, tags stripped
     posted: datetime | None = None
     remote_hint: bool | None = None   # what the source claimed, if anything
+    # The job board's own workplace field: "remote", "hybrid", "onsite" or "" when it has none.
+    # Trusted over the prose - Ashby flags hybrid jobs isRemote=True, and reading the text
+    # called 9 of 17 checked postings by the wrong workplace.
+    workplace: str = ""
     tags: tuple[str, ...] = ()
 
     # Filled in by the pipeline, never by a source.

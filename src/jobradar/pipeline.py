@@ -169,7 +169,10 @@ def judge(posting) -> dict:
     zone, zone_why = timezone.classify(posting)
     score, fit_why = fit.score(posting)
     level, level_why = seniority.classify(posting.title)
-    years = seniority.years_required(posting.text)
+    stated = [y for y in (seniority.years_required(posting.text),
+                          seniority.years_in_title(posting.title),
+                          seniority.korean_years(posting.text)) if y is not None]
+    years = max(stated) if stated else None
     in_pakistan = posting.source == "njp" or \
         places.R_PAKISTAN in _regions(posting, scope, scope_why)
     public = in_pakistan and families.is_public_computing(
@@ -221,7 +224,9 @@ def route(verdict: dict) -> tuple[list[str], str]:
         out.append(SPONSORSHIP)
 
     remote_ok = (
-        (scope == remote.GLOBAL and auth not in authorisation.BLOCKING)
+        # Work open worldwide needs no visa, so "no sponsorship" does not close it; only a
+        # citizenship or clearance rule does.
+        (scope == remote.GLOBAL and auth != authorisation.NATIONALS)
         or (scope in (remote.GLOBAL, remote.REGION) and contractor)
         or (scope == remote.REGION and auth == authorisation.SPONSORS)
     )
@@ -252,11 +257,11 @@ def _why_no_route(verdict: dict) -> str:
     if scope == remote.ONSITE:
         if auth == authorisation.RELOCATION_HINT:
             return "relocation offered, sponsorship unstated"
-        return "onsite, sponsorship not offered"
+        return "onsite, sponsorship not mentioned"
     if scope == remote.HYBRID:
         if auth == authorisation.RELOCATION_HINT:
             return "relocation offered, sponsorship unstated"
-        return "hybrid, sponsorship not offered"
+        return "hybrid, sponsorship not mentioned"
     if scope == remote.COUNTRY:
         return "remote, country-locked"
     if scope == remote.REGION:
