@@ -72,6 +72,7 @@ BOARDS = (
     # Cross-employer search APIs, 2026-10-20: every Workable company worldwide, Singapore's
     # government portal and Sweden's employment service, each asked the six title families.
     ("workable-search", open_apis.workable_search),
+    ("workable-country", open_apis.workable_by_country),
     ("mycareersfuture", open_apis.mycareersfuture),
     ("jobtech", open_apis.jobtech),
     # Pakistan's National Job Portal: government and public-sector posts.

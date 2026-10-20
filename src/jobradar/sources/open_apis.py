@@ -52,11 +52,12 @@ def _q(text: str) -> str:
     return urllib.parse.quote(text)
 
 
-def workable_search(pages: int = 6, queries=QUERIES, **kw) -> list[Posting]:
+def workable_search(pages: int = 6, queries=QUERIES, _base: str = "", **kw) -> list[Posting]:
     seen: set[str] = set()
     out: list[Posting] = []
     for query in queries:
-        url = WORKABLE.format(q=_q(query))
+        first = _base or WORKABLE.format(q=_q(query))
+        url = first
         for _ in range(pages):
             payload = get_json(url, **kw)
             if not payload or not payload.get("jobs"):
@@ -87,7 +88,33 @@ def workable_search(pages: int = 6, queries=QUERIES, **kw) -> list[Posting]:
             token = payload.get("nextPageToken")
             if not token:
                 break
-            url = WORKABLE.format(q=_q(query)) + f"&pageToken={_q(str(token))}"
+            url = first + f"&pageToken={_q(str(token))}"
+    return out
+
+
+# The countries a worldwide query under-serves. Asked "machine learning" globally, Workable's
+# first pages are mostly American; asked per country it returned Saudi Arabia 43, Pakistan 34,
+# UAE 21, Malaysia 16, Japan 16, Hong Kong 9 and China 6 (2026-10-20).
+THIN_COUNTRIES = (
+    "United Arab Emirates", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman", "Pakistan",
+    "Malaysia", "China", "Hong Kong", "Taiwan", "Japan", "South Korea", "Indonesia", "Vietnam",
+    "Thailand", "Philippines", "Turkey",
+)
+COUNTRY_QUERIES = ("machine learning", "artificial intelligence", "data scientist")
+
+
+def workable_by_country(pages: int = 3, countries=THIN_COUNTRIES, queries=COUNTRY_QUERIES,
+                        **kw) -> list[Posting]:
+    """Workable search asked per country, for the places a worldwide query buries."""
+    out: list[Posting] = []
+    seen: set[str] = set()
+    for country in countries:
+        for query in queries:
+            base = WORKABLE.format(q=_q(query)) + f"&location={_q(country)}"
+            for posting in workable_search(pages=pages, queries=(query,), _base=base, **kw):
+                if posting.url not in seen:
+                    seen.add(posting.url)
+                    out.append(posting)
     return out
 
 
