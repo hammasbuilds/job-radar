@@ -23,7 +23,7 @@ import urllib.parse
 from datetime import UTC, datetime
 
 from ..posting import Posting, clean
-from .http import get_json
+from .http import SourceError, get_json
 
 QUERIES = (
     "machine learning engineer", "ml engineer", "deep learning", "computer vision",
@@ -33,7 +33,9 @@ QUERIES = (
 
 WORKABLE = "https://jobs.workable.com/api/v1/jobs?query={q}"
 MCF = "https://api.mycareersfuture.gov.sg/v2/jobs?search={q}&limit=100&page={page}"
-JOBTECH = "https://jobsearch.api.jobtechdev.se/search?q={q}&limit=100&offset={offset}"
+# 50 a page: at 100 a page is over a megabyte, and on a throttled line it arrived cut off on
+# every retry. Smaller pages finish; a page that still fails costs that page, not the source.
+JOBTECH = "https://jobsearch.api.jobtechdev.se/search?q={q}&limit=50&offset={offset}"
 
 
 def _iso(value) -> datetime | None:
@@ -126,12 +128,15 @@ def mycareersfuture(pages: int = 3, queries=QUERIES, **kw) -> list[Posting]:
     return out
 
 
-def jobtech(pages: int = 3, queries=QUERIES, **kw) -> list[Posting]:
+def jobtech(pages: int = 4, queries=QUERIES, **kw) -> list[Posting]:
     seen: set[str] = set()
     out: list[Posting] = []
     for query in queries:
         for page in range(pages):
-            payload = get_json(JOBTECH.format(q=_q(query), offset=page * 100), **kw)
+            try:
+                payload = get_json(JOBTECH.format(q=_q(query), offset=page * 50), **kw)
+            except SourceError:
+                break
             hits = (payload or {}).get("hits") or []
             for job in hits:
                 jid = str(job.get("id", ""))
@@ -154,6 +159,6 @@ def jobtech(pages: int = 3, queries=QUERIES, **kw) -> list[Posting]:
                     remote_hint=False,
                     tags=tuple(filter(None, (hours, kind))),
                 ))
-            if len(hits) < 100:
+            if len(hits) < 50:
                 break
     return out

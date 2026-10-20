@@ -332,6 +332,11 @@ def run(postings: list) -> tuple[list, Funnel]:
             or not regions
         if reason != EXCLUDED and in_target:
             verdict["route"] = ",".join(where) if where else reason
+            # The lens lists the target countries only: "London; Bengaluru" is a UK role here,
+            # and India must not appear as a country to pick when it was asked to be left out.
+            verdict["lens_countries"] = [
+                c for c in verdict["countries"]
+                if places.region_of_country(c) in REGIONS]
             funnel.lens.append(posting)
         if reason:
             funnel.kill(posting, reason)

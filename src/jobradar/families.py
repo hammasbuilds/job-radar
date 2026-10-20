@@ -43,7 +43,7 @@ _COMPUTING = re.compile(
     r"\b(?:it|i\.t\.|ict|information technology|computer|computing|software|developer|"
     r"programmer|data|database|dba|network|system|systems|cyber|web|digital|gis|ai|"
     r"artificial intelligence|machine learning|deep learning|computer vision|robotics|"
-    r"cloud|devops|analyst)\b",
+    r"cloud|devops|data analyst|systems analyst|business intelligence)\b",
     re.I,
 )
 
@@ -80,7 +80,7 @@ _PROGRAM = re.compile(
 )
 _AI_CONTEXT = re.compile(
     r"\b(?:a\.?i\.?|ml|machine learning|deep learning|safety|alignment|interpretability|"
-    r"llms?|research|computer vision|nlp|robotics)\b",
+    r"llms?|computer vision|nlp|robotics|generative|neural|data science)\b",
     re.I,
 )
 

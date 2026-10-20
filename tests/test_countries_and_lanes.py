@@ -180,3 +180,87 @@ def test_directory_states_pay_only_with_a_source():
     kinds = {e["kind"] for e in directory.ENTRIES}
     assert kinds == set(directory.KINDS)
     assert sum(e["kind"] == directory.ACCELERATOR for e in directory.ENTRIES) >= 20
+
+
+def test_a_truncated_download_is_retried_not_fatal(monkeypatch, tmp_path):
+    import http.client
+
+    from jobradar.sources import http as layer
+
+    monkeypatch.setenv("JOBRADAR_CACHE", str(tmp_path))
+    # The suite is offline by default; this test fakes the network itself, below the layer.
+    monkeypatch.setenv("JOBRADAR_OFFLINE", "0")
+    monkeypatch.setattr(layer, "allowed", lambda url: (True, 0.0))
+    monkeypatch.setattr(layer, "_pace", lambda host, interval: None)
+    monkeypatch.setattr(layer.time, "sleep", lambda s: None)
+    calls = []
+
+    class Body:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'{"ok": true}'
+
+    def fake_open(request, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            raise http.client.IncompleteRead(b"partial", 100)
+        return Body()
+
+    monkeypatch.setattr(layer, "_open", fake_open)
+    assert layer.get_json("https://jobs.example/api", cache=False) == {"ok": True}
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize(("text", "terms"), [
+    ("Fellows work 40 hours a week for four months.", arrangement.UNSTATED),
+    ("Benefits: flexible hours, gym.", arrangement.UNSTATED),
+    ("About 10-20 hours a week, paid per task.", arrangement.SMALL),
+    ("Commit 15 hours per week.", arrangement.SMALL),
+])
+def test_hours_decide_small_contracts_by_the_number(text, terms):
+    p = job("ML Fellow", text=text)
+    assert arrangement.terms(p, "unstated")[0] == terms
+
+
+def test_public_lane_needs_a_computing_title_not_any_analyst():
+    assert not families.is_public_computing("Deputy Director (Financial Analyst)", "Ministry",
+                                            "njp")
+    assert families.is_public_computing("Data Analyst (BPS-17)", "Ministry", "njp")
+
+
+def test_a_research_fellowship_outside_ai_is_not_an_ai_programme():
+    assert not families.is_program("Research Fellow (Ecology/Soil Science)", "NTU")
+    assert families.is_program("Research Fellow (AI for Materials)", "NTU")
+
+
+def test_the_lens_shows_target_countries_only():
+    kept, funnel = pipeline.run([
+        job("Machine Learning Engineer", "London, UK; Bengaluru, India", "We sponsor visas.")])
+    assert funnel.lens[0].verdict["lens_countries"] == ["United Kingdom"]
+
+
+@pytest.mark.parametrize(("text", "terms"), [
+    ("In the short term, we have focused on interpretability.", arrangement.UNSTATED),
+    ("Our office is an hour from the airport.", arrangement.UNSTATED),
+    ("This is a short-term contract for three months.", arrangement.SMALL),
+    ("Paid hourly, about 25 dollars per hour.", arrangement.SMALL),
+])
+def test_small_contract_phrases_must_name_the_arrangement(text, terms):
+    assert arrangement.terms(job("ML Engineer", text=text), "unstated")[0] == terms
+
+
+@pytest.mark.parametrize(("title", "tags", "text", "terms"), [
+    ("Associate Data Scientist", (), "Internships or part-time roles count as experience.",
+     arrangement.UNSTATED),
+    ("AI Engineer", (), "Full-time and part-time study modes are offered.", arrangement.FULL_TIME),
+    ("AI Engineer (Part-time)", (), "", arrangement.SMALL),
+    ("AI Engineer", ("Part Time",), "", arrangement.SMALL),
+    ("AI Engineer", (), "This is a part-time position.", arrangement.SMALL),
+])
+def test_part_time_must_describe_this_role(title, tags, text, terms):
+    assert arrangement.terms(job(title, text=text, tags=tags), "unstated")[0] == terms

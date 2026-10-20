@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import http.client
 import json
 import time
 import urllib.error
@@ -258,7 +259,11 @@ def _fetch(url: str, *, max_age: float, cache: bool, parse: bool,
                 last = exc
                 continue
             raise SourceError(f"{url}: HTTP {exc.code}") from exc
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        # IncompleteRead is a body cut off mid-download - on a throttled line, the commonest
+        # failure of a large board - and it is an http.client error, not an OSError, so it
+        # once ended the JobTech source on its first attempt instead of being retried.
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError,
+                http.client.HTTPException) as exc:
             last = exc
             if attempt < RETRIES - 1:
                 time.sleep(BACKOFF**attempt)
