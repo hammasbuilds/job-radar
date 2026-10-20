@@ -174,7 +174,8 @@ def judge(posting) -> dict:
         places.R_PAKISTAN in _regions(posting, scope, scope_why)
     public = in_pakistan and families.is_public_computing(
         posting.title, posting.company, posting.source, posting.tags)
-    family, track = families.classify(posting.title, posting.company, public)
+    data_work = families.is_data_work(posting.title) and not fit.role_match(posting.title)
+    family, track = families.classify(posting.title, posting.company, public, data_work)
     terms, terms_why = arrangement.terms(posting, form)
 
     return {
@@ -290,7 +291,10 @@ def run(postings: list) -> tuple[list, Funnel]:
         # rule: "Assistant Director (IT)" is the job there, and fit.py would kill it.
         public = families.is_public_computing(posting.title, posting.company, posting.source,
                                               posting.tags)
-        if not program and not public and not fit.role_match(posting.title):
+        # Paid AI-training work (model evaluator, data annotator) is its own lane for the same
+        # reason: fit.py vetoes "trainer".
+        data_work = families.is_data_work(posting.title)
+        if not program and not public and not data_work and not fit.role_match(posting.title):
             posting.verdict = {"role": "", "fit_why": "title is not a target role"}
             funnel.kill(posting, ROLE)
             continue

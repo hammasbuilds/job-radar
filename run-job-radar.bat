@@ -82,6 +82,15 @@ if errorlevel 1 (
 )
 
 echo.
+echo Refreshing accelerator and investor portfolios (daily)...
+echo.
+"%PY%" scripts\fetch_portfolios.py --if-older-than 24
+if errorlevel 1 (
+    echo.
+    echo   Portfolio refresh failed. The last stored portfolios stay on screen.
+)
+
+echo.
 echo [3/3] Opening the dashboard at http://127.0.0.1:8000
 echo.
 echo   Close this window to stop it.

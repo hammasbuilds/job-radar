@@ -178,6 +178,43 @@ CREATE TABLE IF NOT EXISTS directory (
     PRIMARY KEY (kind, name)
 );
 
+-- Accelerator and investor portfolios, from their job-board sitemaps.
+CREATE TABLE IF NOT EXISTS portfolio_company (
+    programme  TEXT NOT NULL,
+    slug       TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    url        TEXT NOT NULL,
+    roles      INTEGER NOT NULL DEFAULT 0,
+    ai_roles   INTEGER NOT NULL DEFAULT 0,
+    junior_ai  INTEGER NOT NULL DEFAULT 0,
+    at         TEXT NOT NULL,
+    PRIMARY KEY (programme, slug)
+);
+CREATE TABLE IF NOT EXISTS portfolio_job (
+    programme  TEXT NOT NULL,
+    company    TEXT NOT NULL,
+    title      TEXT NOT NULL,
+    url        TEXT NOT NULL,
+    ai         INTEGER NOT NULL DEFAULT 0,
+    junior     INTEGER NOT NULL DEFAULT 0,
+    family     TEXT,
+    track      TEXT,
+    level      TEXT,
+    at         TEXT NOT NULL,
+    PRIMARY KEY (programme, url)
+);
+CREATE TABLE IF NOT EXISTS portfolio_programme (
+    name       TEXT PRIMARY KEY,
+    kind       TEXT NOT NULL,
+    board      TEXT NOT NULL,
+    companies  INTEGER NOT NULL,
+    roles      INTEGER NOT NULL,
+    ai_roles   INTEGER NOT NULL,
+    junior_ai  INTEGER NOT NULL,
+    failed     TEXT NOT NULL DEFAULT '',
+    at         TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS run (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     at        TEXT NOT NULL,
@@ -690,6 +727,54 @@ def yc_recent_age_hours(path: Path | None = None) -> float | None:
     conn = connect(path)
     try:
         row = conn.execute("SELECT MAX(at) FROM yc_recent").fetchone()
+    finally:
+        conn.close()
+    if not row or not row[0]:
+        return None
+    return (datetime.now(UTC) - datetime.fromisoformat(row[0])).total_seconds() / 3600
+
+
+def save_portfolio(p, jobs: list[dict], path: Path | None = None) -> None:
+    """Replace one programme's companies and roles with what its sitemaps say now."""
+    conn = connect(path)
+    now = _now()
+    per: dict[str, list[int]] = {}
+    for j in jobs:
+        c = per.setdefault(j["company_slug"], [0, 0, 0])
+        c[0] += 1
+        c[1] += int(j["ai"])
+        c[2] += int(j["junior"])
+    try:
+        with conn:
+            # A sitemap that could not be read leaves the last good copy in place rather than
+            # replacing a whole portfolio with nothing.
+            if not p.read:
+                return
+            conn.execute("DELETE FROM portfolio_company WHERE programme = ?", (p.name,))
+            conn.execute("DELETE FROM portfolio_job WHERE programme = ?", (p.name,))
+            from .sources.portfolios import name_from_slug
+
+            for slug, url in p.companies.items():
+                roles, ai, junior = per.get(slug, [0, 0, 0])
+                conn.execute("INSERT OR REPLACE INTO portfolio_company VALUES (?,?,?,?,?,?,?,?)",
+                             (p.name, slug, name_from_slug(slug), url, roles, ai, junior, now))
+            for j in jobs:
+                conn.execute(
+                    "INSERT OR REPLACE INTO portfolio_job VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (p.name, j["company"], j["title"], j["url"], int(j["ai"]), int(j["junior"]),
+                     j["family"], j["track"], j["level"], now))
+            conn.execute("INSERT OR REPLACE INTO portfolio_programme VALUES (?,?,?,?,?,?,?,?,?)",
+                         (p.name, p.kind, p.board, len(p.companies), len(jobs),
+                          sum(j["ai"] for j in jobs), sum(j["junior"] for j in jobs),
+                          "; ".join(p.failed), now))
+    finally:
+        conn.close()
+
+
+def portfolio_age_hours(path: Path | None = None) -> float | None:
+    conn = connect(path)
+    try:
+        row = conn.execute("SELECT MIN(at) FROM portfolio_programme").fetchone()
     finally:
         conn.close()
     if not row or not row[0]:

@@ -24,9 +24,28 @@ AGENTIC = "Agentic AI"
 OTHER = "Other AI"
 PROGRAM = "Fellowship / programme"
 PUBLIC = "Pakistan public sector (CS/IT/AI)"
+DATA_WORK = "AI data work (contract)"
 
 FAMILIES = (ML_DL, ML, DL, CV, GENAI, AGENTIC)
-ALL = (*FAMILIES, OTHER, PROGRAM, PUBLIC)
+ALL = (*FAMILIES, OTHER, PROGRAM, PUBLIC, DATA_WORK)
+
+# Training and checking AI models for pay - the Mercor / DataAnnotation kind of work: "AI Data
+# Trainer", "Mathematics Model Evaluator", "LLM Quality Analyst", "Thai AI Data Annotator".
+# fit.py vetoes "trainer" (a corporate trainer is not the job there), so this lane has its own
+# rule: a data-work noun, next to an AI word.
+_DATA_NOUN = re.compile(
+    r"\b(?:trainers?|tutors?|annotators?|annotation|label(?:l)?ers?|label(?:l)?ing|raters?|"
+    r"evaluators?|red[- ]teamers?|quality analysts?|response writers?|prompt writers?)\b",
+    re.I,
+)
+_DATA_AI = re.compile(
+    r"\b(?:a\.?i\.?|llms?|models?|ai data|chatbots?|gen[- ]?ai|machine learning|rlhf)\b", re.I)
+
+
+def is_data_work(title: str) -> bool:
+    """Paid work training or checking AI models, whatever the title calls it."""
+    t = title or ""
+    return bool(_DATA_NOUN.search(t) and _DATA_AI.search(t))
 
 # Government, university and state-enterprise employers in Pakistan, and the computing titles
 # they advertise. Their posts are rarely titled "ML engineer" ("Assistant Director (IT)",
@@ -92,14 +111,21 @@ def is_program(title: str, company: str = "") -> bool:
     return bool(_AI_CONTEXT.search(f"{title} {company}"))
 
 
-def classify(title: str, company: str = "", public: bool = False) -> tuple[str, str]:
-    """(family, track) for a title already accepted as a target role, or as a programme."""
+def classify(title: str, company: str = "", public: bool = False,
+             data_work: bool = False) -> tuple[str, str]:
+    """(family, track) for a title already accepted as a target role, or as a programme.
+
+    `data_work` is for a title accepted only by the data-work lane: an ML engineer on an
+    annotation team is still an ML engineer, so the caller decides, not the words alone.
+    """
     t = title or ""
     track = RESEARCHER if _RESEARCH.search(t) else ENGINEER
     if is_program(t, company):
         return PROGRAM, track
     if public:
         return PUBLIC, track
+    if data_work:
+        return DATA_WORK, track
     for family, pattern in _COMPILED:
         if pattern.search(t):
             return family, track

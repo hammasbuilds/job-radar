@@ -264,3 +264,45 @@ def test_small_contract_phrases_must_name_the_arrangement(text, terms):
 ])
 def test_part_time_must_describe_this_role(title, tags, text, terms):
     assert arrangement.terms(job(title, text=text, tags=tags), "unstated")[0] == terms
+
+
+def test_workable_by_country_asks_each_country_and_follows_pages(monkeypatch):
+    from jobradar.sources import open_apis
+
+    asked = []
+
+    def fake(url, **kw):
+        asked.append(url)
+        if "pageToken" in url:
+            return {"jobs": [{"id": "b", "title": "ML Engineer", "url": "https://w/b",
+                              "location": {"countryName": "Pakistan"}}]}
+        return {"jobs": [{"id": "a", "title": "ML Engineer", "url": "https://w/a",
+                          "location": {"city": "Lahore", "countryName": "Pakistan"}}],
+                "nextPageToken": "t1"}
+
+    monkeypatch.setattr(open_apis, "get_json", fake)
+    got = open_apis.workable_by_country(pages=2, countries=("Pakistan",), queries=("ml",))
+    assert [p.url for p in got] == ["https://w/a", "https://w/b"]
+    assert all("location=Pakistan" in u for u in asked)
+    assert "pageToken=t1" in asked[1]
+
+
+def test_paid_ai_training_work_is_its_own_lane_and_ordinary_trainers_are_not():
+    for title in ("AI Data Trainer", "Mathematics Model Evaluators AI Data Trainers",
+                  "LLM AI Quality Analyst Personalization German", "Thai AI Data Annotator"):
+        assert families.is_data_work(title), title
+    for title in ("Personal Trainer", "Corporate Trainer, Sales", "Data Quality Analyst",
+                  "Machine Learning Engineer"):
+        assert not families.is_data_work(title), title
+    kept, funnel = pipeline.run([
+        job("AI Data Trainer", "Remote (worldwide)", "Hourly pay. Set your own schedule.",
+            company="Mercor"),
+        job("Personal Trainer", "Remote (worldwide)", "Coach clients.", company="Gym"),
+        job("ML Engineer, Data Annotation Platform", "Remote (worldwide)", "Build tools.",
+            company="Labelco"),
+    ])
+    lane = {p.company: p.verdict["family"] for p in funnel.lens}
+    assert lane.get("Mercor") == families.DATA_WORK
+    assert "Gym" not in lane
+    # An engineer on an annotation team is an engineer, not data work.
+    assert lane.get("Labelco") not in (None, families.DATA_WORK)
