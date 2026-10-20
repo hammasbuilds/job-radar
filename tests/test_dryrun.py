@@ -31,6 +31,8 @@ def test_the_dry_run_reaches_every_section_and_kill_reason(fetch_script, isolate
         "not one of the target roles", "senior level", "refuses sponsorship",
         "remote, country-locked", "relocation offered, sponsorship unstated",
         "remote, region-locked, no contractor route",
+        # Junior roles only since 2026-10-20: a fixture asking three years is now too senior.
+        "wants 3+ years",
     }
     kept = {(p["company"], p["title"]): p["section"] for p in payload["kept_postings"]}
     # The audit's fixes, end to end through the adapters.

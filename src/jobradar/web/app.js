@@ -364,6 +364,7 @@ const LOADERS = {
   europe: () => loadSection("europe"),
   gulf: () => loadSection("gulf"),
   pakistan: () => loadSection("pakistan"),
+  asia: () => loadSection("asia"),
   yc: loadYC,
   killed: loadKilled,
   pipeline: loadPipeline,

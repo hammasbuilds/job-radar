@@ -72,6 +72,16 @@ if errorlevel 1 (
 )
 
 echo.
+echo Refreshing the last three years of YC batches (weekly; LinkedIn from YC pages
+echo is read by a separate full run: scripts\fetch_yc_recent.py)...
+echo.
+"%PY%" scripts\fetch_yc_recent.py --if-older-than 168 --no-pages
+if errorlevel 1 (
+    echo.
+    echo   YC batch refresh failed. The recent-YC list will show the last stored copy.
+)
+
+echo.
 echo [3/3] Opening the dashboard at http://127.0.0.1:8000
 echo.
 echo   Close this window to stop it.

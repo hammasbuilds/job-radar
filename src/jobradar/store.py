@@ -57,6 +57,32 @@ CREATE INDEX IF NOT EXISTS posting_seen    ON posting(first_seen);
 -- trust screen: a tool whose value is that it discards 99% of its input has
 -- to show the 99%, or there is no way to tell careful filtering from a bug.
 -- It is also the only place a false negative can be found.
+-- The by-country lens: every posting that is the right role at the right level, with its
+-- route as a value to filter on rather than a reason it was hidden. Rebuilt by every run.
+CREATE TABLE IF NOT EXISTS lens (
+    id         TEXT PRIMARY KEY,
+    source     TEXT NOT NULL,
+    company    TEXT NOT NULL,
+    title      TEXT NOT NULL,
+    location   TEXT,
+    url        TEXT NOT NULL,
+    posted     TEXT,
+    family     TEXT NOT NULL,
+    track      TEXT NOT NULL,
+    countries  TEXT NOT NULL,          -- JSON list of display names
+    regions    TEXT NOT NULL,          -- JSON list
+    workplace  TEXT NOT NULL,
+    terms      TEXT NOT NULL,
+    years      INTEGER,
+    level      TEXT,
+    route      TEXT NOT NULL,          -- sections it reached, or why it reached none
+    auth       TEXT,
+    score      REAL NOT NULL,
+    excerpt    TEXT,
+    at         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS lens_family ON lens(family);
+
 CREATE TABLE IF NOT EXISTS killed (
     id         TEXT PRIMARY KEY,
     source     TEXT NOT NULL,
@@ -109,6 +135,48 @@ CREATE TABLE IF NOT EXISTS yc_job (
     at         TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS yc_job_slug ON yc_job(slug);
+
+-- Every YC company of the last three years of batches, hiring or not. Kept apart from
+-- yc_company (the hiring directory with its boards) because the question differs: "who went
+-- through YC recently and how do I reach them", not "who is advertising".
+CREATE TABLE IF NOT EXISTS yc_recent (
+    slug            TEXT PRIMARY KEY,
+    name            TEXT NOT NULL,
+    batch           TEXT,
+    batch_year      INTEGER,
+    website         TEXT,
+    yc_url          TEXT,
+    jobs_url        TEXT,
+    hiring          INTEGER NOT NULL DEFAULT 0,
+    status          TEXT,
+    one_liner       TEXT,
+    industry        TEXT,
+    location        TEXT,
+    team_size       INTEGER,
+    tags            TEXT,
+    is_ai           INTEGER NOT NULL DEFAULT 0,
+    linkedin        TEXT,
+    linkedin_source TEXT,
+    at              TEXT NOT NULL
+);
+
+-- Programmes, platforms, accelerators and grants: the directory written by every crawl,
+-- with the live posting count each one has in the lens right now.
+CREATE TABLE IF NOT EXISTS directory (
+    kind       TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    url        TEXT NOT NULL,
+    jobs_url   TEXT,
+    region     TEXT,
+    what       TEXT,
+    pay        TEXT,
+    pay_source TEXT,
+    who        TEXT,
+    match      TEXT,
+    live       INTEGER NOT NULL DEFAULT 0,
+    at         TEXT NOT NULL,
+    PRIMARY KEY (kind, name)
+);
 
 CREATE TABLE IF NOT EXISTS run (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -238,6 +306,24 @@ def save(postings: list, funnel, path: Path | None = None) -> int:
                         json.dumps(posting.verdict), posting.text[:20000],
                         existing["first_seen"] if existing else now, now,
                     ),
+                )
+            conn.execute("DELETE FROM lens")
+            for posting in getattr(funnel, "lens", []):
+                v = posting.verdict
+                conn.execute(
+                    """INSERT OR REPLACE INTO lens
+                       (id, source, company, title, location, url, posted, family, track,
+                        countries, regions, workplace, terms, years, level, route, auth,
+                        score, excerpt, at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (posting.key, posting.source, posting.company, posting.title,
+                     posting.location, posting.url,
+                     posting.posted.isoformat() if posting.posted else None,
+                     v.get("family", ""), v.get("track", ""),
+                     json.dumps(v.get("countries", [])), json.dumps(v.get("regions", [])),
+                     v.get("workplace", ""), v.get("terms", ""), v.get("years"),
+                     v.get("level", ""), v.get("route", ""), v.get("auth", ""),
+                     posting.score, (posting.text or "")[:600], now),
                 )
             conn.execute("DELETE FROM killed")
             for posting in getattr(funnel, "rejected", []):
@@ -563,6 +649,78 @@ def yc_counts(path: Path | None = None) -> dict:
         out = dict(row)
         out["buckets"] = buckets
         return out
+    finally:
+        conn.close()
+
+
+def save_yc_recent(companies: list, path: Path | None = None) -> None:
+    conn = connect(path)
+    now = _now()
+    try:
+        with conn:
+            for c in companies:
+                r = c.row()
+                conn.execute(
+                    """INSERT OR REPLACE INTO yc_recent (slug, name, batch, batch_year, website,
+                       yc_url, jobs_url, hiring, status, one_liner, industry, location,
+                       team_size, tags, is_ai, linkedin, linkedin_source, at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (r["slug"], r["name"], r["batch"], r["batch_year"], r["website"],
+                     r["yc_url"], r["jobs_url"], int(r["hiring"]), r["status"], r["one_liner"],
+                     r["industry"], r["location"], r["team_size"], r["tags"], int(r["is_ai"]),
+                     r["linkedin"], r["linkedin_source"], now),
+                )
+    finally:
+        conn.close()
+
+
+def yc_recent_linkedin(path: Path | None = None) -> dict[str, tuple[str, str]]:
+    """slug -> (linkedin, source) already read, so a re-run does not ask YC again."""
+    conn = connect(path)
+    try:
+        rows = conn.execute("SELECT slug, linkedin, linkedin_source FROM yc_recent "
+                            "WHERE linkedin_source = 'yc page'").fetchall()
+        return {r["slug"]: (r["linkedin"], r["linkedin_source"]) for r in rows}
+    finally:
+        conn.close()
+
+
+def yc_recent_age_hours(path: Path | None = None) -> float | None:
+    conn = connect(path)
+    try:
+        row = conn.execute("SELECT MAX(at) FROM yc_recent").fetchone()
+    finally:
+        conn.close()
+    if not row or not row[0]:
+        return None
+    return (datetime.now(UTC) - datetime.fromisoformat(row[0])).total_seconds() / 3600
+
+
+def save_directory(entries: list[dict], path: Path | None = None) -> None:
+    conn = connect(path)
+    now = _now()
+    try:
+        with conn:
+            conn.execute("DELETE FROM directory")
+            for e in entries:
+                pattern = (e.get("match") or "").lower()
+                live = 0
+                if pattern:
+                    # For a fellowship only its programme postings count: Anthropic's other
+                    # three hundred roles are not the Fellows Program.
+                    only = " AND family = 'Fellowship / programme'" \
+                        if e["kind"] == "Fellowship / paid programme" else ""
+                    live = conn.execute(
+                        "SELECT COUNT(*) FROM lens WHERE lower(company) LIKE ?" + only,
+                        (f"%{pattern}%",)).fetchone()[0]
+                conn.execute(
+                    """INSERT OR REPLACE INTO directory (kind, name, url, jobs_url, region,
+                       what, pay, pay_source, who, match, live, at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (e["kind"], e["name"], e["url"], e.get("jobs_url", ""), e.get("region", ""),
+                     e.get("what", ""), e.get("pay", ""), e.get("pay_source", ""),
+                     e.get("who", ""), e.get("match", ""), live, now),
+                )
     finally:
         conn.close()
 

@@ -12,6 +12,9 @@ contributes nothing but postings this tool will kill.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 # provider -> slugs. The company name shown in the UI comes from the board
 # itself where the API provides it, so these are identifiers, not labels.
 # Every slug below was verified by `scripts/probe_companies.py --wide`, which
@@ -78,9 +81,36 @@ BLOCKED: dict[str, tuple[str, ...]] = {
 }
 
 
-def all_slugs() -> list[tuple[str, str]]:
+def SEEDS_ONLY() -> list[tuple[str, str]]:  # noqa: N802 - reads as a constant at call sites
     return [(provider, slug) for provider, slugs in SEEDS.items() for slug in slugs]
 
 
+# Boards found by `scripts/discover_boards.py` from the names in candidates.py. Generated, and
+# committed so a crawl needs no discovery pass first; re-run discovery when counts drop.
+_FOUND = Path(__file__).with_name("boards_found.json")
+
+
+def found() -> dict[str, dict]:
+    try:
+        return json.loads(_FOUND.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def all_slugs() -> list[tuple[str, str]]:
+    out = SEEDS_ONLY()
+    seen = set(out)
+    for provider, boards in found().items():
+        for slug in boards:
+            if (provider, slug) not in seen and provider in _READABLE:
+                seen.add((provider, slug))
+                out.append((provider, slug))
+    return out
+
+
+# What the crawl can read. SmartRecruiters is absent on purpose: its robots.txt forbids it.
+_READABLE = {"greenhouse", "lever", "ashby", "workable", "recruitee", "personio"}
+
+
 def count() -> int:
-    return sum(len(s) for s in SEEDS.values())
+    return len(all_slugs())

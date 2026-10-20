@@ -31,13 +31,14 @@ from __future__ import annotations
 # Add "senior" here to see them again.
 ACCEPT_LEVELS = ("assistant", "junior", "associate", "mid")
 
-# Fresher to three years. A posting demanding more than this is rejected even
+# Fresher to two years - junior roles only, as asked on 2026-10-20 (it was three). A posting
+# demanding more than this is rejected even
 # when its title reads junior — "AI Engineer" that asks for eight years in
 # paragraph three is a senior role that forgot to say so in its title.
 #
 # A posting that states no requirement at all is kept: most do not state one,
 # and silence is not a demand.
-MAX_YEARS = 3
+MAX_YEARS = 2
 
 # The roles actually being looked for. A posting whose *title* is one of these
 # is the thing; everything else is a stack match that happens to mention ML.
@@ -63,6 +64,11 @@ TARGET_ROLES = [
     "agentic engineer",
     "ai agent engineer",
     "agent engineer",
+    # The six families asked for, engineer and researcher alike (2026-10-20).
+    "ml/dl researcher", "deep learning researcher", "computer vision researcher",
+    "cv engineer", "cv researcher", "vision engineer", "generative ai researcher",
+    "genai researcher", "agentic ai researcher", "ai agents researcher",
+    "deep learning scientist", "computer vision scientist",
     # Research titles. "All researchers" was asked for explicitly, so these
     # are first-class targets rather than near-misses - in AI the research
     # title is often the same job as the engineering one. Bare "researcher" is

@@ -31,7 +31,17 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .filters import authorisation, employment, fit, places, remote, seniority, timezone
+from . import families
+from .filters import (
+    arrangement,
+    authorisation,
+    employment,
+    fit,
+    places,
+    remote,
+    seniority,
+    timezone,
+)
 from .profile import ACCEPT_LEVELS, MAX_YEARS
 
 SPONSORSHIP = "sponsorship"
@@ -39,12 +49,15 @@ REMOTE = "remote"
 GULF = places.R_GULF
 EUROPE = places.R_EUROPE
 PAKISTAN = places.R_PAKISTAN
+ASIA = places.R_ASIA
 
-REGIONS = (GULF, EUROPE, PAKISTAN)
+REGIONS = (GULF, EUROPE, PAKISTAN, ASIA)
 SECTIONS = (SPONSORSHIP, REMOTE, *REGIONS)
 
 # Kill reasons, grouped by the stage that produces them, in pipeline order.
 ROLE = "not one of the target roles"
+# India and Bangladesh are left out on request; a posting naming only them goes here.
+EXCLUDED = "India / Bangladesh, left out"
 STAGES = ("role", "level", "years", "route")
 
 
@@ -76,6 +89,9 @@ class Funnel:
     # The rejected postings themselves, not just the counts: the Killed screen
     # is the trust screen, and the only place a false negative can be found.
     rejected: list = field(default_factory=list)
+    # Everything that is the right role at the right level, whatever its route: the
+    # by-country view, where the route is a badge to read rather than a reason to hide it.
+    lens: list = field(default_factory=list)
 
     def kill(self, posting, reason: str) -> None:
         self.killed[reason] = self.killed.get(reason, 0) + 1
@@ -124,6 +140,16 @@ class Funnel:
 _SCOPE_PLACE = re.compile(r"(?:in|within|remote[, (-]*|based in)\s+(?:the\s+)?([a-z .]+?)\)?$")
 
 
+def _countries(posting, scope: str, scope_why: str) -> list[str]:
+    """Countries by display name: the location field, else the title, else the prose scope."""
+    found = places.countries_of(posting.location) or places.countries_of(posting.title)
+    if not found and scope == remote.COUNTRY:
+        named = _SCOPE_PLACE.search(scope_why.lower())
+        if named:
+            found = places.countries_of(named.group(1))
+    return found
+
+
 def _regions(posting, scope: str, scope_why: str) -> set[str]:
     """Dashboard regions: from the location field, else the title, else the
     country a prose scope named ("Must be located in Pakistan")."""
@@ -144,9 +170,19 @@ def judge(posting) -> dict:
     score, fit_why = fit.score(posting)
     level, level_why = seniority.classify(posting.title)
     years = seniority.years_required(posting.text)
+    in_pakistan = posting.source == "njp" or \
+        places.R_PAKISTAN in _regions(posting, scope, scope_why)
+    public = in_pakistan and families.is_public_computing(
+        posting.title, posting.company, posting.source, posting.tags)
+    family, track = families.classify(posting.title, posting.company, public)
+    terms, terms_why = arrangement.terms(posting, form)
 
     return {
         "regions": sorted(_regions(posting, scope, scope_why)),
+        "countries": _countries(posting, scope, scope_why),
+        "family": family, "track": track,
+        "workplace": arrangement.workplace(scope),
+        "terms": terms, "terms_why": terms_why,
         "role": fit.role_match(posting.title) or "",
         "level": level, "level_why": level_why,
         "years": years,
@@ -174,6 +210,8 @@ def route(verdict: dict) -> tuple[list[str], str]:
     contractor = verdict["employment"] in (employment.CONTRACTOR, employment.EITHER)
     regions = set(verdict.get("regions", []))
 
+    if regions and regions <= {places.R_EXCLUDED} and scope != remote.GLOBAL:
+        return [], EXCLUDED
     if auth == authorisation.NATIONALS and PAKISTAN not in regions:
         return [], "citizens / nationals only"
 
@@ -194,8 +232,9 @@ def route(verdict: dict) -> tuple[list[str], str]:
             continue
         if region == PAKISTAN:
             out.append(PAKISTAN)
-        elif region == GULF and auth not in authorisation.BLOCKING:
-            out.append(GULF)
+        elif region in (GULF, ASIA) and auth not in authorisation.BLOCKING:
+            # Employer-sponsored work passes are how both regions hire from abroad.
+            out.append(region)
         elif region == EUROPE and (auth == authorisation.SPONSORS or remote_ok):
             out.append(EUROPE)
 
@@ -244,7 +283,14 @@ def run(postings: list) -> tuple[list, Funnel]:
         # most of what a company advertises is not AI - so it runs before the
         # other filters read the body, which is what keeps a 9,000-posting
         # replay to seconds rather than minutes.
-        if not fit.role_match(posting.title):
+        # A fellowship or residency is titled nothing like a job ("Anthropic Fellows
+        # Program") and is the junior route into a frontier lab, so it skips the title rule.
+        program = families.is_program(posting.title, posting.company)
+        # Public-sector computing posts in Pakistan are their own list and their own title
+        # rule: "Assistant Director (IT)" is the job there, and fit.py would kill it.
+        public = families.is_public_computing(posting.title, posting.company, posting.source,
+                                              posting.tags)
+        if not program and not public and not fit.role_match(posting.title):
             posting.verdict = {"role": "", "fit_why": "title is not a target role"}
             funnel.kill(posting, ROLE)
             continue
@@ -253,10 +299,21 @@ def run(postings: list) -> tuple[list, Funnel]:
         posting.verdict = verdict
         posting.score = verdict["score"]
         posting.evidence = verdict["fit_why"]
+        # The public-sector exception holds only for a post that really is Pakistani public
+        # sector; a university IT job in Oxford is still judged by the ordinary title rule.
+        if public and not program and verdict["family"] != families.PUBLIC \
+                and not fit.role_match(posting.title):
+            verdict.update(role="", fit_why="title is not a target role")
+            funnel.kill(posting, ROLE)
+            continue
+        # Government grades read as levels ("Assistant Director" is a junior BPS-17 officer in
+        # Pakistan, not an executive), so the level gate is skipped for that lane and the
+        # years gate below is what keeps it junior.
 
         # Entry to mid only. Senior, staff and lead titles are most of what is
         # advertised and would bury the junior roles further down one list.
-        if verdict["level"] not in ACCEPT_LEVELS:
+        if verdict["level"] not in ACCEPT_LEVELS and not program \
+                and verdict["family"] != families.PUBLIC:
             funnel.kill(posting, f"{verdict['level']} level")
             continue
 
@@ -268,6 +325,14 @@ def run(postings: list) -> tuple[list, Funnel]:
             continue
 
         where, reason = route(verdict)
+        # The lens is the target countries only: a role in one of the four regions, a
+        # role open worldwide, or one that names no place at all (shown as "Not stated").
+        regions = set(verdict["regions"])
+        in_target = bool(regions & set(REGIONS)) or verdict["scope"] == remote.GLOBAL \
+            or not regions
+        if reason != EXCLUDED and in_target:
+            verdict["route"] = ",".join(where) if where else reason
+            funnel.lens.append(posting)
         if reason:
             funnel.kill(posting, reason)
             continue

@@ -31,7 +31,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from jobradar import companies, config, dryrun, pipeline, store  # noqa: E402
+from jobradar import companies, config, directory, dryrun, pipeline, store  # noqa: E402
 from jobradar.sources import (  # noqa: E402
     aggregators,
     ats,
@@ -39,6 +39,8 @@ from jobradar.sources import (  # noqa: E402
     greenhouse,
     lever,
     mustakbil,
+    njp,
+    open_apis,
     registry,
 )
 from jobradar.sources.http import Blocked  # noqa: E402
@@ -53,6 +55,7 @@ FETCHERS = {
     "ashby": ats.ashby,
     "smartrecruiters": ats.smartrecruiters,
     "recruitee": ats.recruitee,
+    "personio": ats.personio,
 }
 
 BOARDS = (
@@ -66,6 +69,13 @@ BOARDS = (
     # Mustakbil's RSS feed: the 500 freshest Pakistani postings in one
     # request, so it runs every time. The deep sweep below is the slow part.
     ("mustakbil", mustakbil.fetch_feed),
+    # Cross-employer search APIs, 2026-10-20: every Workable company worldwide, Singapore's
+    # government portal and Sweden's employment service, each asked the six title families.
+    ("workable-search", open_apis.workable_search),
+    ("mycareersfuture", open_apis.mycareersfuture),
+    ("jobtech", open_apis.jobtech),
+    # Pakistan's National Job Portal: government and public-sector posts.
+    ("njp", njp.fetch),
 )
 
 
@@ -210,6 +220,7 @@ def dry_run(results: Path | None = None, quiet: bool = False) -> dict:
         for line in funnel.as_lines():
             say("  " + line)
         new = store.save(kept, funnel)
+        store.save_directory(directory.ENTRIES)
         say(f"\nkept, {new} new:")
         for p in kept:
             say(f"  {p.score:.2f}  {p.title} - {p.company}  [{p.section}]")
@@ -308,7 +319,9 @@ def main() -> None:
         print("  " + line)
 
     new = store.save(kept, funnel)
-    print(f"\n{len(kept):,} kept, {new:,} new since the last run")
+    store.save_directory(directory.ENTRIES)
+    print(f"\n{len(kept):,} kept, {new:,} new since the last run, "
+          f"{len(funnel.lens):,} in the by-country lens")
     print(f"stored in {store.db_path()}")
 
     if args.results:

@@ -70,6 +70,44 @@ CITY_COUNTRY = {
     "lahore": "pakistan", "karachi": "pakistan", "islamabad": "pakistan",
     "rawalpindi": "pakistan", "faisalabad": "pakistan", "peshawar": "pakistan",
     "multan": "pakistan", "quetta": "pakistan", "sialkot": "pakistan",
+    "gujranwala": "pakistan",
+    # East and Southeast Asia
+    "beijing": "china", "shanghai": "china", "shenzhen": "china", "hangzhou": "china",
+    "guangzhou": "china", "chengdu": "china", "nanjing": "china", "wuhan": "china",
+    "suzhou": "china", "xian": "china", "tianjin": "china",
+    "hong kong": "hong kong", "kowloon": "hong kong", "taipei": "taiwan",
+    "hsinchu": "taiwan", "seoul": "south korea", "pangyo": "south korea",
+    "busan": "south korea", "osaka": "japan", "kyoto": "japan", "fukuoka": "japan",
+    "yokohama": "japan", "kuala lumpur": "malaysia", "petaling jaya": "malaysia",
+    "penang": "malaysia", "cyberjaya": "malaysia", "johor bahru": "malaysia",
+    "jakarta": "indonesia", "bandung": "indonesia", "surabaya": "indonesia",
+    "bangkok": "thailand", "chiang mai": "thailand", "ho chi minh city": "vietnam",
+    "ho chi minh": "vietnam", "hcmc": "vietnam", "hanoi": "vietnam", "da nang": "vietnam",
+    "manila": "philippines", "makati": "philippines", "taguig": "philippines",
+    "cebu": "philippines", "dhaka": "bangladesh", "chennai": "india", "kolkata": "india",
+    "gurgaon": "india", "gurugram": "india", "noida": "india", "ahmedabad": "india",
+    # more of Europe
+    "eindhoven": "netherlands", "the hague": "netherlands", "delft": "netherlands",
+    "ghent": "belgium", "leuven": "belgium", "aarhus": "denmark", "malmo": "sweden",
+    "malmö": "sweden", "uppsala": "sweden", "lund": "sweden", "trondheim": "norway",
+    "bergen": "norway", "espoo": "finland", "tampere": "finland", "oulu": "finland",
+    "gdansk": "poland", "poznan": "poland", "lodz": "poland", "katowice": "poland",
+    "bratislava": "slovakia", "ljubljana": "slovenia", "zagreb": "croatia",
+    "belgrade": "serbia", "novi sad": "serbia", "kyiv": "ukraine", "lviv": "ukraine",
+    "kharkiv": "ukraine", "iasi": "romania", "timisoara": "romania",
+    "thessaloniki": "greece", "nicosia": "cyprus", "limassol": "cyprus",
+    "valletta": "malta", "luxembourg city": "luxembourg", "reykjavik": "iceland",
+    "graz": "austria", "linz": "austria", "lausanne": "switzerland", "bern": "switzerland",
+    "bologna": "italy", "florence": "italy", "naples": "italy", "seville": "spain",
+    "malaga": "spain", "bilbao": "spain", "marseille": "france", "nice": "france",
+    "nantes": "france", "bordeaux": "france", "lille": "france", "grenoble": "france",
+    "sophia antipolis": "france", "glasgow": "uk", "belfast": "uk", "birmingham": "uk",
+    "nottingham": "uk", "sheffield": "uk", "newcastle": "uk", "reading": "uk",
+    "brighton": "uk", "galway": "ireland", "limerick": "ireland", "dresden": "germany",
+    "leipzig": "germany", "heidelberg": "germany", "karlsruhe": "germany",
+    "darmstadt": "germany", "aachen": "germany", "tübingen": "germany",
+    "tubingen": "germany", "nuremberg": "germany",
+    "istanbul": "turkey", "ankara": "turkey", "izmir": "turkey",
 }
 
 COUNTRIES = {
@@ -79,7 +117,10 @@ COUNTRIES = {
     "sweden", "denmark", "norway", "finland", "iceland", "poland", "czechia",
     "czech republic", "slovakia", "austria", "switzerland", "italy", "greece",
     "romania", "bulgaria", "hungary", "croatia", "slovenia", "serbia",
-    "estonia", "latvia", "lithuania", "ukraine", "turkey", "cyprus", "malta",
+    "estonia", "latvia", "lithuania", "ukraine", "turkey", "türkiye", "cyprus", "malta",
+    "bosnia and herzegovina", "bosnia", "albania", "north macedonia", "montenegro",
+    "moldova", "kosovo", "liechtenstein", "monaco", "andorra", "belarus",
+    "hong kong", "taiwan", "korea", "republic of korea", "brunei", "cambodia",
     "usa", "u.s.", "u.s.a.", "us", "united states", "united states of america",
     "canada", "mexico", "brazil", "argentina", "chile", "colombia", "peru",
     "uruguay", "costa rica", "india", "pakistan", "bangladesh", "sri lanka",
@@ -107,15 +148,79 @@ EUROPE = {
     "czech republic", "slovakia", "austria", "switzerland", "italy", "greece",
     "romania", "bulgaria", "hungary", "croatia", "slovenia", "serbia",
     "estonia", "latvia", "lithuania", "ukraine", "cyprus", "malta",
+    "turkey", "türkiye", "bosnia and herzegovina", "bosnia", "albania", "north macedonia",
+    "montenegro", "moldova", "kosovo", "liechtenstein", "monaco", "andorra", "belarus",
 }
 
 PAKISTAN = {"pakistan"}
 
+# East and Southeast Asia: China, Singapore, Malaysia and their neighbours. Employer-sponsored
+# work passes are the normal route here, as in the Gulf, so silence about a visa is not a no.
+ASIA = {"china", "hong kong", "taiwan", "japan", "south korea", "korea", "republic of korea",
+        "singapore", "malaysia", "indonesia", "thailand", "vietnam", "philippines", "brunei",
+        "cambodia"}
+
+# Asked to be left out. A posting whose only places are these is dropped; one that also names
+# a target country, or is open worldwide, is kept.
+EXCLUDED = {"india", "bangladesh"}
+
+# One display name per country, whatever spelling the posting used.
+CANONICAL = {
+    "uk": "United Kingdom", "united kingdom": "United Kingdom",
+    "great britain": "United Kingdom", "england": "United Kingdom",
+    "scotland": "United Kingdom", "wales": "United Kingdom", "deutschland": "Germany",
+    "the netherlands": "Netherlands", "holland": "Netherlands", "czech republic": "Czechia",
+    "türkiye": "Turkey", "bosnia": "Bosnia and Herzegovina",
+    "bosnia and herzegovina": "Bosnia and Herzegovina", "north macedonia": "North Macedonia",
+    "uae": "United Arab Emirates", "united arab emirates": "United Arab Emirates",
+    "ksa": "Saudi Arabia", "saudi arabia": "Saudi Arabia", "korea": "South Korea",
+    "republic of korea": "South Korea", "south korea": "South Korea",
+    "hong kong": "Hong Kong", "usa": "United States", "u.s.": "United States",
+    "u.s.a.": "United States", "us": "United States", "united states": "United States",
+    "united states of america": "United States", "new zealand": "New Zealand",
+    "sri lanka": "Sri Lanka", "south africa": "South Africa", "costa rica": "Costa Rica",
+}
+
+
+def canonical(country: str) -> str:
+    return CANONICAL.get(country, country.title())
+
+
+def countries_of(location: str) -> list[str]:
+    """Every country a location string names, by display name, in a stable order."""
+    found: set[str] = set()
+    for token in tokens(location):
+        if token in _FILLER:
+            continue
+        country = token if token in COUNTRIES else CITY_COUNTRY.get(token)
+        if country:
+            found.add(canonical(country))
+    return sorted(found)
+
+
+def region_of_country(name: str) -> str:
+    """The dashboard region of a country given by its display name."""
+    keys = {k for k, v in CANONICAL.items() if v == name} | {name.lower()}
+    if keys & GULF:
+        return R_GULF
+    if keys & EUROPE:
+        return R_EUROPE
+    if keys & PAKISTAN:
+        return R_PAKISTAN
+    if keys & ASIA:
+        return R_ASIA
+    if keys & EXCLUDED:
+        return R_EXCLUDED
+    return R_OTHER
+
 # Region names used as dashboard sections.
 R_GULF, R_EUROPE, R_PAKISTAN, R_OTHER = "gulf", "europe", "pakistan", "other"
+R_ASIA, R_EXCLUDED = "asia", "excluded"
 
 _REGION_WORDS = {
     "gcc": R_GULF, "middle east": R_GULF, "mena": R_GULF,
+    "apac": R_ASIA, "asia pacific": R_ASIA, "southeast asia": R_ASIA,
+    "asean": R_ASIA, "greater china": R_ASIA,
     "eu": R_EUROPE, "eea": R_EUROPE, "europe": R_EUROPE,
     "european union": R_EUROPE, "european economic area": R_EUROPE,
     "emea": R_EUROPE, "nordics": R_EUROPE, "benelux": R_EUROPE, "dach": R_EUROPE,
@@ -147,6 +252,10 @@ def regions_of(location: str) -> set[str]:
             found.add(R_EUROPE)
         elif country in PAKISTAN:
             found.add(R_PAKISTAN)
+        elif country in ASIA:
+            found.add(R_ASIA)
+        elif country in EXCLUDED:
+            found.add(R_EXCLUDED)
         else:
             found.add(R_OTHER)
     return found

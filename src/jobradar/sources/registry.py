@@ -61,6 +61,13 @@ SOURCES: tuple[Source, ...] = (
     Source("The Muse", "board", WIRED,
            "20,639 pages unfiltered — category filter is mandatory"),
     Source("Hacker News Who-is-hiring", "board", WIRED, "via the Algolia API"),
+    Source("Workable job search", "board", WIRED,
+           "every Workable company worldwide by title; robots.txt blocks only /search pages"),
+    Source("MyCareersFuture (Singapore)", "board", WIRED,
+           "government portal, no key; minimum years and position level as data"),
+    Source("JobTech (Sweden)", "board", WIRED, "Arbetsformedlingen open API, no key"),
+    Source("Bundesagentur Jobsuche (Germany)", "board", NO_API,
+           "403 on every request, robots.txt included (2026-10-20)"),
     Source("Y Combinator", "directory", WIRED,
            "yc-oss mirror; 1,483 hiring, no LinkedIn field"),
 

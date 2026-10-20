@@ -18,3 +18,7 @@ dist/
 # Local backups of the personal database, and the personal config.
 data/*.sqlite3*
 config.toml
+
+# Crawl logs and the discovery pass's resume file: rebuildable, machine-specific.
+data/*.log
+data/discover_progress.json

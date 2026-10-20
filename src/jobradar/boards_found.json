@@ -1,0 +1,1250 @@
+{
+ "ashby": {
+  "1x": {
+   "company": "1X",
+   "found": "2026-10-20",
+   "postings": 99,
+   "region": "europe"
+  },
+  "airwallex": {
+   "company": "Airwallex",
+   "found": "2026-10-20",
+   "postings": 499,
+   "region": "asia"
+  },
+  "alan": {
+   "company": "Alan",
+   "found": "2026-10-20",
+   "postings": 129,
+   "region": "europe"
+  },
+  "alephalpha": {
+   "company": "Aleph Alpha",
+   "found": "2026-10-20",
+   "postings": 4,
+   "region": "europe"
+  },
+  "apify": {
+   "company": "Apify",
+   "found": "2026-10-20",
+   "postings": 10,
+   "region": "europe"
+  },
+  "axelera": {
+   "company": "Axelera AI",
+   "found": "2026-10-20",
+   "postings": 8,
+   "region": "europe"
+  },
+  "babbel": {
+   "company": "Babbel",
+   "found": "2026-10-20",
+   "postings": 11,
+   "region": "europe"
+  },
+  "backmarket": {
+   "company": "Back Market",
+   "found": "2026-10-20",
+   "postings": 32,
+   "region": "europe"
+  },
+  "basecamp-research": {
+   "company": "Basecamp Research",
+   "found": "2026-10-20",
+   "postings": 13,
+   "region": "europe"
+  },
+  "beamery": {
+   "company": "Beamery",
+   "found": "2026-10-20",
+   "postings": 6,
+   "region": "europe"
+  },
+  "billie": {
+   "company": "Billie",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "bitvavo": {
+   "company": "Bitvavo",
+   "found": "2026-10-20",
+   "postings": 13,
+   "region": "europe"
+  },
+  "black-forest-labs": {
+   "company": "Black Forest Labs",
+   "found": "2026-10-20",
+   "postings": 13,
+   "region": "europe"
+  },
+  "brainly": {
+   "company": "Brainly",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "europe"
+  },
+  "bynder": {
+   "company": "Bynder",
+   "found": "2026-10-20",
+   "postings": 23,
+   "region": "europe"
+  },
+  "camunda": {
+   "company": "Camunda",
+   "found": "2026-10-20",
+   "postings": 40,
+   "region": "europe"
+  },
+  "causaly": {
+   "company": "Causaly",
+   "found": "2026-10-20",
+   "postings": 6,
+   "region": "europe"
+  },
+  "choco": {
+   "company": "Choco",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "europe"
+  },
+  "clark": {
+   "company": "Clark",
+   "found": "2026-10-20",
+   "postings": 19,
+   "region": "europe"
+  },
+  "cohere": {
+   "company": "Cohere",
+   "found": "2026-10-20",
+   "postings": 116,
+   "region": "global"
+  },
+  "corti": {
+   "company": "Corti",
+   "found": "2026-10-20",
+   "postings": 5,
+   "region": "europe"
+  },
+  "cosuno": {
+   "company": "Cosuno",
+   "found": "2026-10-20",
+   "postings": 17,
+   "region": "europe"
+  },
+  "cuspai": {
+   "company": "CuspAI",
+   "found": "2026-10-20",
+   "postings": 15,
+   "region": "europe"
+  },
+  "deepl": {
+   "company": "DeepL",
+   "found": "2026-10-20",
+   "postings": 7,
+   "region": "europe"
+  },
+  "deliveroo": {
+   "company": "Deliveroo",
+   "found": "2026-10-20",
+   "postings": 8,
+   "region": "europe"
+  },
+  "docplanner": {
+   "company": "DocPlanner",
+   "found": "2026-10-20",
+   "postings": 40,
+   "region": "europe"
+  },
+  "doctolib": {
+   "company": "Doctolib",
+   "found": "2026-10-20",
+   "postings": 145,
+   "region": "europe"
+  },
+  "dust": {
+   "company": "Dust",
+   "found": "2026-10-20",
+   "postings": 25,
+   "region": "europe"
+  },
+  "elevenlabs": {
+   "company": "ElevenLabs",
+   "found": "2026-10-20",
+   "postings": 157,
+   "region": "europe"
+  },
+  "encord": {
+   "company": "Encord",
+   "found": "2026-10-20",
+   "postings": 39,
+   "region": "europe"
+  },
+  "enpal": {
+   "company": "Enpal",
+   "found": "2026-10-20",
+   "postings": 156,
+   "region": "europe"
+  },
+  "epidemic-sound": {
+   "company": "Epidemic Sound",
+   "found": "2026-10-20",
+   "postings": 29,
+   "region": "europe"
+  },
+  "faculty": {
+   "company": "Faculty",
+   "found": "2026-10-20",
+   "postings": 74,
+   "region": "europe"
+  },
+  "forto": {
+   "company": "Forto",
+   "found": "2026-10-20",
+   "postings": 9,
+   "region": "europe"
+  },
+  "fractile": {
+   "company": "Fractile",
+   "found": "2026-10-20",
+   "postings": 38,
+   "region": "europe"
+  },
+  "frontify": {
+   "company": "Frontify",
+   "found": "2026-10-20",
+   "postings": 20,
+   "region": "europe"
+  },
+  "glia": {
+   "company": "Glia",
+   "found": "2026-10-20",
+   "postings": 17,
+   "region": "europe"
+  },
+  "gooddata": {
+   "company": "GoodData",
+   "found": "2026-10-20",
+   "postings": 4,
+   "region": "europe"
+  },
+  "hcompany": {
+   "company": "H Company",
+   "found": "2026-10-20",
+   "postings": 36,
+   "region": "europe"
+  },
+  "iceye": {
+   "company": "ICEYE",
+   "found": "2026-10-20",
+   "postings": 195,
+   "region": "europe"
+  },
+  "improbable": {
+   "company": "Improbable",
+   "found": "2026-10-20",
+   "postings": 4,
+   "region": "europe"
+  },
+  "kiwi": {
+   "company": "Kiwi",
+   "found": "2026-10-20",
+   "postings": 6,
+   "region": "europe"
+  },
+  "kognity": {
+   "company": "Kognity",
+   "found": "2026-10-20",
+   "postings": 4,
+   "region": "europe"
+  },
+  "langdock": {
+   "company": "Langdock",
+   "found": "2026-10-20",
+   "postings": 12,
+   "region": "europe"
+  },
+  "latentlabs": {
+   "company": "Latent Labs",
+   "found": "2026-10-20",
+   "postings": 7,
+   "region": "europe"
+  },
+  "ledger": {
+   "company": "Ledger",
+   "found": "2026-10-20",
+   "postings": 13,
+   "region": "europe"
+  },
+  "legora": {
+   "company": "Legora",
+   "found": "2026-10-20",
+   "postings": 309,
+   "region": "europe"
+  },
+  "lovable": {
+   "company": "Lovable",
+   "found": "2026-10-20",
+   "postings": 81,
+   "region": "europe"
+  },
+  "lumai": {
+   "company": "Lumai",
+   "found": "2026-10-20",
+   "postings": 9,
+   "region": "europe"
+  },
+  "lunar": {
+   "company": "Lunar",
+   "found": "2026-10-20",
+   "postings": 15,
+   "region": "europe"
+  },
+  "marshmallow": {
+   "company": "Marshmallow",
+   "found": "2026-10-20",
+   "postings": 15,
+   "region": "europe"
+  },
+  "miro": {
+   "company": "Miro",
+   "found": "2026-10-20",
+   "postings": 21,
+   "region": "europe"
+  },
+  "mollie": {
+   "company": "Mollie",
+   "found": "2026-10-20",
+   "postings": 45,
+   "region": "europe"
+  },
+  "multiverse": {
+   "company": "Multiverse",
+   "found": "2026-10-20",
+   "postings": 29,
+   "region": "europe"
+  },
+  "nabla": {
+   "company": "Nabla",
+   "found": "2026-10-20",
+   "postings": 10,
+   "region": "europe"
+  },
+  "nord-security": {
+   "company": "Nord Security",
+   "found": "2026-10-20",
+   "postings": 138,
+   "region": "europe"
+  },
+  "openai": {
+   "company": "OpenAI",
+   "found": "2026-10-20",
+   "postings": 807,
+   "region": "global"
+  },
+  "owkin": {
+   "company": "Owkin",
+   "found": "2026-10-20",
+   "postings": 6,
+   "region": "europe"
+  },
+  "oxa": {
+   "company": "Oxa",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "europe"
+  },
+  "paddle": {
+   "company": "Paddle",
+   "found": "2026-10-20",
+   "postings": 15,
+   "region": "europe"
+  },
+  "parloa": {
+   "company": "Parloa",
+   "found": "2026-10-20",
+   "postings": 55,
+   "region": "europe"
+  },
+  "pennylane": {
+   "company": "Pennylane",
+   "found": "2026-10-20",
+   "postings": 139,
+   "region": "europe"
+  },
+  "photoroom": {
+   "company": "Photoroom",
+   "found": "2026-10-20",
+   "postings": 12,
+   "region": "europe"
+  },
+  "pleo": {
+   "company": "Pleo",
+   "found": "2026-10-20",
+   "postings": 29,
+   "region": "europe"
+  },
+  "poolside": {
+   "company": "Poolside",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "primer": {
+   "company": "Primer",
+   "found": "2026-10-20",
+   "postings": 24,
+   "region": "europe"
+  },
+  "proxima-fusion": {
+   "company": "Proxima Fusion",
+   "found": "2026-10-20",
+   "postings": 52,
+   "region": "europe"
+  },
+  "qlub": {
+   "company": "Qlub",
+   "found": "2026-10-20",
+   "postings": 22,
+   "region": "gulf"
+  },
+  "qonto": {
+   "company": "Qonto",
+   "found": "2026-10-20",
+   "postings": 44,
+   "region": "europe"
+  },
+  "quantexa": {
+   "company": "Quantexa",
+   "found": "2026-10-20",
+   "postings": 31,
+   "region": "europe"
+  },
+  "rain": {
+   "company": "Rain",
+   "found": "2026-10-20",
+   "postings": 38,
+   "region": "gulf"
+  },
+  "rasa": {
+   "company": "Rasa",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "reaktor": {
+   "company": "Reaktor",
+   "found": "2026-10-20",
+   "postings": 20,
+   "region": "europe"
+  },
+  "robco": {
+   "company": "Robco",
+   "found": "2026-10-20",
+   "postings": 32,
+   "region": "europe"
+  },
+  "rohlik": {
+   "company": "Rohlik",
+   "found": "2026-10-20",
+   "postings": 88,
+   "region": "europe"
+  },
+  "satispay": {
+   "company": "Satispay",
+   "found": "2026-10-20",
+   "postings": 74,
+   "region": "europe"
+  },
+  "sereact": {
+   "company": "Sereact",
+   "found": "2026-10-20",
+   "postings": 40,
+   "region": "europe"
+  },
+  "sievo": {
+   "company": "Sievo",
+   "found": "2026-10-20",
+   "postings": 11,
+   "region": "europe"
+  },
+  "signal-ai": {
+   "company": "Signal AI",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "snyk": {
+   "company": "Snyk",
+   "found": "2026-10-20",
+   "postings": 27,
+   "region": "europe"
+  },
+  "sorare": {
+   "company": "Sorare",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "supercell": {
+   "company": "Supercell",
+   "found": "2026-10-20",
+   "postings": 38,
+   "region": "europe"
+  },
+  "synthesia": {
+   "company": "Synthesia",
+   "found": "2026-10-20",
+   "postings": 39,
+   "region": "europe"
+  },
+  "tacto": {
+   "company": "Tacto",
+   "found": "2026-10-20",
+   "postings": 23,
+   "region": "europe"
+  },
+  "thndr": {
+   "company": "Thndr",
+   "found": "2026-10-20",
+   "postings": 15,
+   "region": "gulf"
+  },
+  "thought-machine": {
+   "company": "Thought Machine",
+   "found": "2026-10-20",
+   "postings": 40,
+   "region": "europe"
+  },
+  "toogoodtogo": {
+   "company": "Too Good To Go",
+   "found": "2026-10-20",
+   "postings": 43,
+   "region": "europe"
+  },
+  "tourlane": {
+   "company": "Tourlane",
+   "found": "2026-10-20",
+   "postings": 5,
+   "region": "europe"
+  },
+  "tractable": {
+   "company": "Tractable",
+   "found": "2026-10-20",
+   "postings": 5,
+   "region": "europe"
+  },
+  "trustly": {
+   "company": "Trustly",
+   "found": "2026-10-20",
+   "postings": 35,
+   "region": "europe"
+  },
+  "twelve-labs": {
+   "company": "Twelve Labs",
+   "found": "2026-10-20",
+   "postings": 14,
+   "region": "asia"
+  },
+  "wayflyer": {
+   "company": "Wayflyer",
+   "found": "2026-10-20",
+   "postings": 16,
+   "region": "europe"
+  },
+  "wayve": {
+   "company": "Wayve",
+   "found": "2026-10-20",
+   "postings": 174,
+   "region": "europe"
+  },
+  "weaviate": {
+   "company": "Weaviate",
+   "found": "2026-10-20",
+   "postings": 3,
+   "region": "europe"
+  },
+  "workhuman": {
+   "company": "Workhuman",
+   "found": "2026-10-20",
+   "postings": 9,
+   "region": "europe"
+  },
+  "zego": {
+   "company": "Zego",
+   "found": "2026-10-20",
+   "postings": 40,
+   "region": "europe"
+  },
+  "zenjob": {
+   "company": "Zenjob",
+   "found": "2026-10-20",
+   "postings": 12,
+   "region": "europe"
+  },
+  "ziina": {
+   "company": "Ziina",
+   "found": "2026-10-20",
+   "postings": 15,
+   "region": "gulf"
+  },
+  "zilch": {
+   "company": "Zilch",
+   "found": "2026-10-20",
+   "postings": 14,
+   "region": "europe"
+  }
+ },
+ "greenhouse": {
+  "agoda": {
+   "company": "Agoda",
+   "found": "2026-10-20",
+   "postings": 313,
+   "region": "asia"
+  },
+  "appier": {
+   "company": "Appier",
+   "found": "2026-10-20",
+   "postings": 66,
+   "region": "asia"
+  },
+  "assemblyai": {
+   "company": "AssemblyAI",
+   "found": "2026-10-20",
+   "postings": 15,
+   "region": "global"
+  },
+  "biofourmis": {
+   "company": "Biofourmis",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "asia"
+  },
+  "bird": {
+   "company": "Bird",
+   "found": "2026-10-20",
+   "postings": 32,
+   "region": "europe"
+  },
+  "bitpanda": {
+   "company": "Bitpanda",
+   "found": "2026-10-20",
+   "postings": 31,
+   "region": "europe"
+  },
+  "cabify": {
+   "company": "Cabify",
+   "found": "2026-10-20",
+   "postings": 63,
+   "region": "europe"
+  },
+  "cognite": {
+   "company": "Cognite",
+   "found": "2026-10-20",
+   "postings": 52,
+   "region": "europe"
+  },
+  "complyadvantage": {
+   "company": "ComplyAdvantage",
+   "found": "2026-10-20",
+   "postings": 14,
+   "region": "europe"
+  },
+  "coreweave": {
+   "company": "CoreWeave",
+   "found": "2026-10-20",
+   "postings": 315,
+   "region": "global"
+  },
+  "coupang": {
+   "company": "Coupang",
+   "found": "2026-10-20",
+   "postings": 684,
+   "region": "asia"
+  },
+  "cresta": {
+   "company": "Cresta",
+   "found": "2026-10-20",
+   "postings": 84,
+   "region": "global"
+  },
+  "dataiku": {
+   "company": "Dataiku",
+   "found": "2026-10-20",
+   "postings": 13,
+   "region": "europe"
+  },
+  "descript": {
+   "company": "Descript",
+   "found": "2026-10-20",
+   "postings": 10,
+   "region": "global"
+  },
+  "doctolib": {
+   "company": "Doctolib",
+   "found": "2026-10-20",
+   "postings": 150,
+   "region": "europe"
+  },
+  "feedzai": {
+   "company": "Feedzai",
+   "found": "2026-10-20",
+   "postings": 27,
+   "region": "europe"
+  },
+  "figure": {
+   "company": "Figure",
+   "found": "2026-10-20",
+   "postings": 19,
+   "region": "global"
+  },
+  "flipdish": {
+   "company": "Flipdish",
+   "found": "2026-10-20",
+   "postings": 11,
+   "region": "europe"
+  },
+  "flix": {
+   "company": "Flix",
+   "found": "2026-10-20",
+   "postings": 138,
+   "region": "europe"
+  },
+  "fractile": {
+   "company": "Fractile",
+   "found": "2026-10-20",
+   "postings": 38,
+   "region": "europe"
+  },
+  "furiosaai": {
+   "company": "FuriosaAI",
+   "found": "2026-10-20",
+   "postings": 52,
+   "region": "asia"
+  },
+  "goodfire": {
+   "company": "Goodfire",
+   "found": "2026-10-20",
+   "postings": 29,
+   "region": "global"
+  },
+  "gostudent": {
+   "company": "GoStudent",
+   "found": "2026-10-20",
+   "postings": 27,
+   "region": "europe"
+  },
+  "handshake": {
+   "company": "Handshake",
+   "found": "2026-10-20",
+   "postings": 9,
+   "region": "ai-work"
+  },
+  "helsing": {
+   "company": "Helsing",
+   "found": "2026-10-20",
+   "postings": 158,
+   "region": "europe"
+  },
+  "humansignal": {
+   "company": "HumanSignal",
+   "found": "2026-10-20",
+   "postings": 61,
+   "region": "ai-work"
+  },
+  "humeai": {
+   "company": "Hume AI",
+   "found": "2026-10-20",
+   "postings": 5,
+   "region": "global"
+  },
+  "imbue": {
+   "company": "Imbue",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "global"
+  },
+  "inflectionai": {
+   "company": "Inflection AI",
+   "found": "2026-10-20",
+   "postings": 6,
+   "region": "global"
+  },
+  "intercom": {
+   "company": "Intercom",
+   "found": "2026-10-20",
+   "postings": 106,
+   "region": "europe"
+  },
+  "invisible": {
+   "company": "Invisible Technologies",
+   "found": "2026-10-20",
+   "postings": 5,
+   "region": "ai-work"
+  },
+  "isaraerospace": {
+   "company": "Isar Aerospace",
+   "found": "2026-10-20",
+   "postings": 123,
+   "region": "europe"
+  },
+  "isomorphiclabs": {
+   "company": "Isomorphic Labs",
+   "found": "2026-10-20",
+   "postings": 29,
+   "region": "europe"
+  },
+  "ivalua": {
+   "company": "Ivalua",
+   "found": "2026-10-20",
+   "postings": 48,
+   "region": "europe"
+  },
+  "konux": {
+   "company": "Konux",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "krafton": {
+   "company": "Krafton",
+   "found": "2026-10-20",
+   "postings": 53,
+   "region": "asia"
+  },
+  "labelbox": {
+   "company": "Labelbox",
+   "found": "2026-10-20",
+   "postings": 7,
+   "region": "ai-work"
+  },
+  "lightmatter": {
+   "company": "Lightmatter",
+   "found": "2026-10-20",
+   "postings": 63,
+   "region": "global"
+  },
+  "lovable": {
+   "company": "Lovable",
+   "found": "2026-10-20",
+   "postings": 61,
+   "region": "europe"
+  },
+  "marvelfusion": {
+   "company": "Marvel Fusion",
+   "found": "2026-10-20",
+   "postings": 16,
+   "region": "europe"
+  },
+  "mirakl": {
+   "company": "Mirakl",
+   "found": "2026-10-20",
+   "postings": 31,
+   "region": "europe"
+  },
+  "moloco": {
+   "company": "Moloco",
+   "found": "2026-10-20",
+   "postings": 41,
+   "region": "asia"
+  },
+  "moonfare": {
+   "company": "Moonfare",
+   "found": "2026-10-20",
+   "postings": 18,
+   "region": "europe"
+  },
+  "mozilla": {
+   "company": "Mozilla",
+   "found": "2026-10-20",
+   "postings": 96,
+   "region": "global"
+  },
+  "parloa": {
+   "company": "Parloa",
+   "found": "2026-10-20",
+   "postings": 52,
+   "region": "europe"
+  },
+  "physicsx": {
+   "company": "PhysicsX",
+   "found": "2026-10-20",
+   "postings": 40,
+   "region": "europe"
+  },
+  "polyai": {
+   "company": "PolyAI",
+   "found": "2026-10-20",
+   "postings": 3,
+   "region": "europe"
+  },
+  "prolific": {
+   "company": "Prolific",
+   "found": "2026-10-20",
+   "postings": 30,
+   "region": "ai-work"
+  },
+  "proton": {
+   "company": "Proton",
+   "found": "2026-10-20",
+   "postings": 55,
+   "region": "europe"
+  },
+  "remotasks": {
+   "company": "Remotasks",
+   "found": "2026-10-20",
+   "postings": 4,
+   "region": "ai-work"
+  },
+  "remote": {
+   "company": "Remote",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "scandit": {
+   "company": "Scandit",
+   "found": "2026-10-20",
+   "postings": 14,
+   "region": "europe"
+  },
+  "sendbird": {
+   "company": "Sendbird",
+   "found": "2026-10-20",
+   "postings": 5,
+   "region": "asia"
+  },
+  "shein": {
+   "company": "Shein",
+   "found": "2026-10-20",
+   "postings": 19,
+   "region": "asia"
+  },
+  "shifttechnology": {
+   "company": "Shift Technology",
+   "found": "2026-10-20",
+   "postings": 23,
+   "region": "europe"
+  },
+  "snorkelai": {
+   "company": "Snorkel AI",
+   "found": "2026-10-20",
+   "postings": 45,
+   "region": "ai-work"
+  },
+  "stabilityai": {
+   "company": "Stability AI",
+   "found": "2026-10-20",
+   "postings": 6,
+   "region": "europe"
+  },
+  "swordhealth": {
+   "company": "Sword Health",
+   "found": "2026-10-20",
+   "postings": 51,
+   "region": "europe"
+  },
+  "tenstorrent": {
+   "company": "Tenstorrent",
+   "found": "2026-10-20",
+   "postings": 127,
+   "region": "global"
+  },
+  "thunes": {
+   "company": "Thunes",
+   "found": "2026-10-20",
+   "postings": 51,
+   "region": "asia"
+  },
+  "togetherai": {
+   "company": "Together AI",
+   "found": "2026-10-20",
+   "postings": 78,
+   "region": "global"
+  },
+  "toloka": {
+   "company": "Toloka",
+   "found": "2026-10-20",
+   "postings": 17,
+   "region": "ai-work"
+  },
+  "truecaller": {
+   "company": "Truecaller",
+   "found": "2026-10-20",
+   "postings": 31,
+   "region": "europe"
+  },
+  "turing": {
+   "company": "Turing",
+   "found": "2026-10-20",
+   "postings": 32,
+   "region": "ai-work"
+  },
+  "vercel": {
+   "company": "Vercel",
+   "found": "2026-10-20",
+   "postings": 94,
+   "region": "global"
+  },
+  "veriff": {
+   "company": "Veriff",
+   "found": "2026-10-20",
+   "postings": 10,
+   "region": "europe"
+  },
+  "wallapop": {
+   "company": "Wallapop",
+   "found": "2026-10-20",
+   "postings": 5,
+   "region": "europe"
+  },
+  "wikimedia": {
+   "company": "Wikimedia",
+   "found": "2026-10-20",
+   "postings": 13,
+   "region": "global"
+  },
+  "wolt": {
+   "company": "Wolt",
+   "found": "2026-10-20",
+   "postings": 205,
+   "region": "europe"
+  },
+  "xai": {
+   "company": "xAI",
+   "found": "2026-10-20",
+   "postings": 305,
+   "region": "global"
+  },
+  "xendit": {
+   "company": "Xendit",
+   "found": "2026-10-20",
+   "postings": 27,
+   "region": "asia"
+  }
+ },
+ "lever": {
+  "aircall": {
+   "company": "Aircall",
+   "found": "2026-10-20",
+   "postings": 77,
+   "region": "europe"
+  },
+  "anybotics": {
+   "company": "ANYbotics",
+   "found": "2026-10-20",
+   "postings": 23,
+   "region": "europe"
+  },
+  "apolloresearch": {
+   "company": "Apollo Research",
+   "found": "2026-10-20",
+   "postings": 12,
+   "region": "europe"
+  },
+  "blablacar": {
+   "company": "BlaBlaCar",
+   "found": "2026-10-20",
+   "postings": 8,
+   "region": "europe"
+  },
+  "dnb": {
+   "company": "DNB",
+   "found": "2026-10-20",
+   "postings": 92,
+   "region": "europe"
+  },
+  "farfetch": {
+   "company": "Farfetch",
+   "found": "2026-10-20",
+   "postings": 45,
+   "region": "europe"
+  },
+  "healx": {
+   "company": "Healx",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "europe"
+  },
+  "iqm": {
+   "company": "IQM",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "europe"
+  },
+  "malt": {
+   "company": "Malt",
+   "found": "2026-10-20",
+   "postings": 24,
+   "region": "europe"
+  },
+  "pigment": {
+   "company": "Pigment",
+   "found": "2026-10-20",
+   "postings": 137,
+   "region": "europe"
+  },
+  "pipedrive": {
+   "company": "Pipedrive",
+   "found": "2026-10-20",
+   "postings": 8,
+   "region": "europe"
+  },
+  "researchgate": {
+   "company": "ResearchGate",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "europe"
+  },
+  "text": {
+   "company": "Text",
+   "found": "2026-10-20",
+   "postings": 5,
+   "region": "europe"
+  }
+ },
+ "personio": {
+  "aliceandbob": {
+   "company": "Alice & Bob",
+   "found": "2026-10-20",
+   "postings": 3,
+   "region": "europe"
+  },
+  "clark": {
+   "company": "Clark",
+   "found": "2026-10-20",
+   "postings": 4,
+   "region": "europe"
+  },
+  "einride": {
+   "company": "Einride",
+   "found": "2026-10-20",
+   "postings": 3,
+   "region": "europe"
+  },
+  "everphone": {
+   "company": "Everphone",
+   "found": "2026-10-20",
+   "postings": 10,
+   "region": "europe"
+  },
+  "kiwi": {
+   "company": "Kiwi",
+   "found": "2026-10-20",
+   "postings": 3,
+   "region": "europe"
+  },
+  "magazino": {
+   "company": "Magazino",
+   "found": "2026-10-20",
+   "postings": 7,
+   "region": "europe"
+  },
+  "merantix": {
+   "company": "Merantix",
+   "found": "2026-10-20",
+   "postings": 14,
+   "region": "europe"
+  },
+  "mobimeo": {
+   "company": "Mobimeo",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "neon": {
+   "company": "Neon",
+   "found": "2026-10-20",
+   "postings": 20,
+   "region": "global"
+  },
+  "personio": {
+   "company": "Personio",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "europe"
+  },
+  "planetafoods": {
+   "company": "Planet A Foods",
+   "found": "2026-10-20",
+   "postings": 7,
+   "region": "europe"
+  },
+  "scale": {
+   "company": "Scale AI",
+   "found": "2026-10-20",
+   "postings": 6,
+   "region": "global"
+  },
+  "seez": {
+   "company": "Seez",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "gulf"
+  },
+  "tiki": {
+   "company": "Tiki",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "asia"
+  },
+  "trg": {
+   "company": "TRG",
+   "found": "2026-10-20",
+   "postings": 29,
+   "region": "pakistan"
+  },
+  "twaice": {
+   "company": "Twaice",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "twelve": {
+   "company": "Twelve Labs",
+   "found": "2026-10-20",
+   "postings": 3,
+   "region": "asia"
+  },
+  "unique": {
+   "company": "Unique",
+   "found": "2026-10-20",
+   "postings": 3,
+   "region": "europe"
+  },
+  "wandelbots": {
+   "company": "Wandelbots",
+   "found": "2026-10-20",
+   "postings": 8,
+   "region": "europe"
+  }
+ },
+ "recruitee": {
+  "bunq": {
+   "company": "Bunq",
+   "found": "2026-10-20",
+   "postings": 20,
+   "region": "europe"
+  },
+  "climeworks": {
+   "company": "Climeworks",
+   "found": "2026-10-20",
+   "postings": 2,
+   "region": "europe"
+  },
+  "personio": {
+   "company": "Personio",
+   "found": "2026-10-20",
+   "postings": 1,
+   "region": "europe"
+  }
+ },
+ "workable": {
+  "huggingface": {
+   "company": "Hugging Face",
+   "found": "2026-10-20",
+   "postings": 6,
+   "region": "europe"
+  }
+ }
+}
