@@ -1666,6 +1666,12 @@
   }
  },
  "workable": {
+  "exotec": {
+   "company": "Exotec",
+   "found": "2026-10-21",
+   "postings": 10,
+   "region": "europe"
+  },
   "huggingface": {
    "company": "Hugging Face",
    "found": "2026-10-20",

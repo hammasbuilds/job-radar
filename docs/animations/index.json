@@ -1,0 +1,42 @@
+[
+ {
+  "id": "crawl-funnel-overview",
+  "project": "The crawl",
+  "title": "26,725 postings → the ones you can get",
+  "input": "349 sources · 26,725 postings",
+  "output": "524 junior AI roles · 268 routed",
+  "post": "A job crawler that reads 26,725 postings to find the few a junior AI engineer in Pakistan can actually get.\n\n349 sources (company boards on Greenhouse, Lever, Ashby, Workable… plus open job APIs), robots.txt obeyed, LinkedIn never requested.\n26,725 → 25,590 after dedup → 2,348 target AI titles → 1,422 without senior titles → 847 asking ≤2 years → 268 with a route from Pakistan; 524 in the by-country lens.\nEvery removal is counted with its reason.\n#MachineLearning #Jobs #Python"
+ },
+ {
+  "id": "one-posting-architecture",
+  "project": "One posting",
+  "title": "One posting, field by field",
+  "input": "xAI · AI Tutor - Croatian · Remote International",
+  "output": "AI data work · remote, open to you",
+  "post": "How a job crawler decides whether one posting is open to you - field by field.\n\nPosting: 'AI Tutor - Croatian' (xAI). It says 'remotely from any location worldwide' and also 'we are unable to provide visa sponsorship'.\nOld rule: no sponsorship → closed. New rule: work open worldwide needs no visa, so only a citizenship or clearance rule closes it. 'For US-based candidates…' qualifies a group of hires; it doesn't lock the job to the US.\n18 such roles came back.\n#AI #Jobs #RegEx"
+ },
+ {
+  "id": "one-posting-overview",
+  "project": "One posting",
+  "title": "One posting, field by field",
+  "input": "xAI · AI Tutor - Croatian · Remote International",
+  "output": "AI data work · remote, open to you",
+  "post": "How a job crawler decides whether one posting is open to you - field by field.\n\nPosting: 'AI Tutor - Croatian' (xAI). It says 'remotely from any location worldwide' and also 'we are unable to provide visa sponsorship'.\nOld rule: no sponsorship → closed. New rule: work open worldwide needs no visa, so only a citizenship or clearance rule closes it. 'For US-based candidates…' qualifies a group of hires; it doesn't lock the job to the US.\n18 such roles came back.\n#AI #Jobs #RegEx"
+ },
+ {
+  "id": "portfolios-architecture",
+  "project": "Portfolios",
+  "title": "7 portfolios, read from sitemaps",
+  "input": "Techstars · Antler · a16z · GC · Accel · Thrive · Insight",
+  "output": "6,354 companies · 4,600 AI postings",
+  "post": "Accelerator and VC portfolios, read politely: 6,354 companies and 4,600 AI postings from 7 programmes.\n\nThe board API disallows crawlers in robots.txt, so it isn't used. The boards' own sitemaps are allowed - and they put the job title in the address (/companies/<co>/jobs/<id>-<title>).\nTechstars 2,859 companies, Antler 828, Accel 713, a16z 673, General Catalyst 548, Insight 532, Thrive 101.\n#VentureCapital #Startups #Jobs"
+ },
+ {
+  "id": "portfolios-overview",
+  "project": "Portfolios",
+  "title": "7 portfolios, read from sitemaps",
+  "input": "Techstars · Antler · a16z · GC · Accel · Thrive · Insight",
+  "output": "6,354 companies · 4,600 AI postings",
+  "post": "Accelerator and VC portfolios, read politely: 6,354 companies and 4,600 AI postings from 7 programmes.\n\nThe board API disallows crawlers in robots.txt, so it isn't used. The boards' own sitemaps are allowed - and they put the job title in the address (/companies/<co>/jobs/<id>-<title>).\nTechstars 2,859 companies, Antler 828, Accel 713, a16z 673, General Catalyst 548, Insight 532, Thrive 101.\n#VentureCapital #Startups #Jobs"
+ }
+]

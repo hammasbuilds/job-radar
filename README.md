@@ -94,6 +94,18 @@ The view shows at most **three per company** and says how many it folded
 (*"+ 38 more open at anthropic, folded"*). Nothing is deleted — the rows stay in the
 table, and a cap that silently drops rows is the same sin as a silent filter.
 
+<!-- animations -->
+## Inside each tool
+
+Isometric animations of what happens between the input and the output, recorded from real runs. The **overview** shows the parts in order; the **architecture** view names the file and function at each step and shows what the data holds there - the code, the tokens, the counts. Open the HTML page in any browser (no network needed) or play the MP4.
+
+| What goes in → what comes out | Overview | Architecture |
+|---|---|---|
+| **The crawl**<br>349 sources · 26,725 postings → 524 junior AI roles · 268 routed | <a href="docs/animations/pages/crawl-funnel-overview.mp4"><img src="docs/animations/pages/crawl-funnel-overview.png" width="200" alt="26,725 postings → the ones you can get"></a><br><a href="docs/animations/pages/crawl-funnel-overview.html">play</a> · <a href="docs/animations/pages/crawl-funnel-overview.mp4">MP4</a> |  |
+| **One posting**<br>xAI · AI Tutor - Croatian · Remote International → AI data work · remote, open to you | <a href="docs/animations/pages/one-posting-overview.mp4"><img src="docs/animations/pages/one-posting-overview.png" width="200" alt="One posting, field by field"></a><br><a href="docs/animations/pages/one-posting-overview.html">play</a> · <a href="docs/animations/pages/one-posting-overview.mp4">MP4</a> | <a href="docs/animations/pages/one-posting-architecture.mp4"><img src="docs/animations/pages/one-posting-architecture.png" width="200" alt="One posting, field by field"></a><br><a href="docs/animations/pages/one-posting-architecture.html">play</a> · <a href="docs/animations/pages/one-posting-architecture.mp4">MP4</a> |
+| **Portfolios**<br>Techstars · Antler · a16z · GC · Accel · Thrive · Insight → 6,354 companies · 4,600 AI postings | <a href="docs/animations/pages/portfolios-overview.mp4"><img src="docs/animations/pages/portfolios-overview.png" width="200" alt="7 portfolios, read from sitemaps"></a><br><a href="docs/animations/pages/portfolios-overview.html">play</a> · <a href="docs/animations/pages/portfolios-overview.mp4">MP4</a> | <a href="docs/animations/pages/portfolios-architecture.mp4"><img src="docs/animations/pages/portfolios-architecture.png" width="200" alt="7 portfolios, read from sitemaps"></a><br><a href="docs/animations/pages/portfolios-architecture.html">play</a> · <a href="docs/animations/pages/portfolios-architecture.mp4">MP4</a> |
+<!-- /animations -->
+
 ## Five sections
 
 | | |
