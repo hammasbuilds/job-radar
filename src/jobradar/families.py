@@ -118,11 +118,17 @@ _AI_CONTEXT = re.compile(
 )
 
 
+# A programme at an AI lab is an AI programme whatever its field: Anthropic's "Fellows Program,
+# Economics & Policy" has no AI word in its title and was not counted.
+_AI_LAB = re.compile(r"\b(?:anthropic|openai|deepmind|cohere|mistral|xai|hugging ?face|"
+                     r"stability|perplexity|scale ?ai|meta ai|ai2|allen institute)\b", re.I)
+
+
 def is_program(title: str, company: str = "") -> bool:
     """A fellowship or residency in AI, whatever its title calls it."""
     if not _PROGRAM.search(title or ""):
         return False
-    return bool(_AI_CONTEXT.search(f"{title} {company}"))
+    return bool(_AI_CONTEXT.search(f"{title} {company}") or _AI_LAB.search(company or ""))
 
 
 def classify(title: str, company: str = "", public: bool = False,

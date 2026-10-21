@@ -45,6 +45,11 @@ def main() -> None:
             return
     started = time.time()
     for programme in portfolios.PROGRAMMES:
+        asks = portfolios.asks_for_api(programme)
+        if asks:
+            # The operator asked crawlers to use its API instead; the stored copy stays.
+            print(f"  {programme[0]:<18} skipped: {asks}", flush=True)
+            continue
         p = portfolios.fetch(programme)
         jobs = [judge(j) for j in p.jobs]
         store.save_portfolio(p, jobs)

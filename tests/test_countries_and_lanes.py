@@ -458,3 +458,17 @@ def test_korean_years_in_the_body_are_read():
 
     assert seniority.korean_years("자격요건: 관련 경력 2년 이상") == 2
     assert seniority.korean_years("3년 계약직") is None
+
+
+def test_a_programme_at_an_ai_lab_counts_whatever_its_field():
+    assert families.is_program("Anthropic Fellows Program, Economics & Policy", "anthropic")
+    assert not families.is_program("Research Fellow (Ecology/Soil Science)", "NTU")
+
+
+def test_yc_one_liners_that_never_say_ai_are_still_ai():
+    from jobradar.sources import yc_recent
+
+    for text in ("Agentic video editor", "Foundation models for 24/7 Earth Observation",
+                 "Interpretability and reasoning infra for foundation models."):
+        assert yc_recent._AI.search(text), text
+    assert not yc_recent._AI.search("Tankless Dive Gear - Breath Autonomy at Sea")

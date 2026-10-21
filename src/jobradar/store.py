@@ -204,6 +204,23 @@ CREATE TABLE IF NOT EXISTS portfolio_job (
     at         TEXT NOT NULL,
     PRIMARY KEY (programme, url)
 );
+-- What a portfolio job's own page says (its JobPosting data): the real title with its level
+-- word, where it is, and whether it is still open. Kept by URL, so the daily sitemap refresh
+-- that rewrites portfolio_job never erases it.
+CREATE TABLE IF NOT EXISTS portfolio_detail (
+    url        TEXT PRIMARY KEY,
+    title      TEXT,
+    locations  TEXT,                -- JSON list, as the page writes them
+    countries  TEXT,                -- JSON list of display names
+    remote     INTEGER NOT NULL DEFAULT 0,
+    posted     TEXT,
+    salary     TEXT,
+    years      INTEGER,
+    level      TEXT,
+    junior     INTEGER,
+    gone       INTEGER NOT NULL DEFAULT 0,
+    at         TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS portfolio_programme (
     name       TEXT PRIMARY KEY,
     kind       TEXT NOT NULL,

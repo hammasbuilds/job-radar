@@ -146,3 +146,32 @@ def test_open_now_counts_whole_names_and_only_contract_work_for_platforms(tmp_pa
     live = dict(conn.execute("SELECT name, live FROM directory"))
     conn.close()
     assert live == {"Turing": 1, "Mercor": 1}
+
+
+def test_a_board_that_asks_for_its_api_is_not_crawled(monkeypatch):
+    notice = ("We'd be happy to provide all job data to you through our API services.\n"
+              "Please contact us at api@getro.com")
+    monkeypatch.setattr(portfolios, "get_text", lambda url, **kw: notice)
+    assert portfolios.asks_for_api(PROGRAMME)
+    rules = "User-agent: *\nAllow: /sitemap.xml\nCrawl-delay: 10\n"
+    monkeypatch.setattr(portfolios, "get_text", lambda url, **kw: rules)
+    assert portfolios.asks_for_api(PROGRAMME) == ""
+
+
+def test_a_job_page_gives_the_real_title_place_salary_and_date():
+    page = (Path(__file__).parent / "fixtures" / "getro_job.html").read_text(encoding="utf-8")
+    d = portfolios.parse_job_page(page)
+    assert d["title"] == "AI Engineer - AI Agents (Healthcare)"
+    assert d["locations"] == ["Bengaluru, Karnataka, India"]
+    assert d["salary"] == "INR 2,000,000-5,000,000 / year" and d["posted"] == "2026-01-07"
+    assert "years" in d["text"]
+    assert portfolios.parse_job_page("<html>no data</html>") is None
+
+
+def test_the_page_title_restores_the_level_the_address_lost():
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    from fetch_portfolio_details import judge as judge_page
+
+    assert judge_page({"title": "Staff AI Research Engineer - Computer Vision", "text": ""})["junior"] == 0
+    assert judge_page({"title": "AI Engineer", "text": "You have 5+ years of experience."})["junior"] == 0
+    assert judge_page({"title": "AI Engineer", "text": "1-2 years of experience."})["junior"] == 1

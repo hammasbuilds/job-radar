@@ -67,8 +67,12 @@ def batches_since(year: int, **kw) -> list[tuple[str, str]]:
     return out
 
 
-_AI = re.compile(r"\b(?:ai|artificial intelligence|machine learning|ml|llm|generative|"
-                 r"computer vision|deep learning|nlp|agents?|robotics)\b", re.I)
+# "Agentic video editor", "Foundation models for Earth observation", "Interpretability infra for
+# foundation models" are AI companies whose one-liner never says "AI"; 567 were outside the filter.
+_AI = re.compile(r"\b(?:ai|artificial intelligence|machine learning|ml|llms?|generative|"
+                 r"computer vision|deep learning|nlp|agents?|agentic|robotics|foundation models?|"
+                 r"multimodal|reinforcement learning|interpretability|autonomous|copilots?|gpt|"
+                 r"speech models?|neural)\b", re.I)
 
 
 def recent(years: int = 3, **kw) -> list[RecentCompany]:

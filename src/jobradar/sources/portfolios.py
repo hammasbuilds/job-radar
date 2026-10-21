@@ -15,6 +15,7 @@ dashboard links every role to its real page, where the location and full title a
 
 from __future__ import annotations
 
+import html
 import re
 from dataclasses import dataclass, field
 
@@ -79,6 +80,77 @@ class Portfolio:
     jobs: list[dict] = field(default_factory=list)            # {company, title, url}
     read: int = 0
     failed: list[str] = field(default_factory=list)
+
+
+# Attributes come in any order: Getro writes data-testid="job-ldjson" before the type.
+_LD = re.compile(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', re.S | re.I)
+_TAGS = re.compile(r"<[^>]+>")
+
+
+def parse_job_page(page: str) -> dict | None:
+    """The JobPosting a portfolio job page publishes about itself, or None when it has none.
+
+    The address gave the title in lower-case slug words ("ai-research-engineer-computer-vision")
+    and lost what the board's own title says - "Staff AI Research Engineer - Computer Vision" -
+    and the page is the only place the location, the salary and the posting date are.
+    """
+    import json as _json
+
+    for raw in _LD.findall(page or ""):
+        try:
+            data = _json.loads(raw)
+        except ValueError:
+            continue
+        for obj in data if isinstance(data, list) else [data]:
+            if not isinstance(obj, dict) or obj.get("@type") != "JobPosting":
+                continue
+            places = obj.get("jobLocation") or []
+            places = places if isinstance(places, list) else [places]
+            locations = []
+            for pl in places:
+                addr = (pl or {}).get("address") or {}
+                if isinstance(addr, dict):
+                    text = addr.get("addressLocality") or ", ".join(
+                        str(addr[k]) for k in ("addressRegion", "addressCountry") if addr.get(k))
+                    if text:
+                        locations.append(str(text))
+            salary = ""
+            base = obj.get("baseSalary") or {}
+            value = base.get("value") if isinstance(base, dict) else None
+            if isinstance(value, dict) and (value.get("minValue") or value.get("maxValue")):
+                lo, hi = value.get("minValue"), value.get("maxValue")
+                unit = str(value.get("unitText") or "").lower()
+                salary = f"{base.get('currency', '')} {lo:,}-{hi:,}" if lo and hi else \
+                    f"{base.get('currency', '')} {lo or hi:,}"
+                salary += f" / {unit}" if unit else ""
+            return {
+                "title": html.unescape(str(obj.get("title") or "")).strip(),
+                "locations": locations,
+                "remote": obj.get("jobLocationType") == "TELECOMMUTE",
+                "posted": str(obj.get("datePosted") or "")[:10],
+                "salary": salary.strip(),
+                "text": html.unescape(_TAGS.sub(" ", str(obj.get("description") or ""))),
+            }
+    return None
+
+
+def asks_for_api(programme: tuple) -> str:
+    """The board's own request not to be crawled, or "" when there is none.
+
+    On 2026-10-21 the Getro boards replaced their robots.txt rules with "We'd be happy to
+    provide all job data to you through our API services ... contact api@getro.com". A file
+    with no rules technically permits everything; the operator's request is plain all the same,
+    so this reads it and the portfolio refresh stops, keeping the last stored copy.
+    """
+    board = programme[2]
+    try:
+        text = get_text(f"{board}/robots.txt", max_age=DAY) or ""
+    except Exception:  # an unreadable robots.txt is not a request; the fetch decides
+        return ""
+    low = text.lower()
+    if "through our api" in low or ("api@" in low and "disallow" not in low and "allow" not in low):
+        return "robots.txt asks crawlers to use the board's API instead"
+    return ""
 
 
 def _locs(url: str, p: Portfolio, kw: dict, seen: set[str], depth: int = 0) -> list[str]:

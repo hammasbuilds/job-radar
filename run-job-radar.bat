@@ -91,6 +91,9 @@ if errorlevel 1 (
 )
 
 echo.
+echo Reading new portfolio job pages (titles, places, salaries; weekly per role)...
+"%PY%" scripts\fetch_portfolio_details.py --days 7
+echo.
 echo [3/3] Opening the dashboard at http://127.0.0.1:8000
 echo.
 echo   Close this window to stop it.
