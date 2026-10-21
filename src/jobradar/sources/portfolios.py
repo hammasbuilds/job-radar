@@ -184,9 +184,15 @@ def _locs(url: str, p: Portfolio, kw: dict, seen: set[str], depth: int = 0) -> l
 def fetch(programme: tuple, **kw) -> Portfolio:
     name, kind, board = programme[:3]
     p = Portfolio(name, kind, board)
+    seen_jobs: set[str] = set()
     for loc in _locs(kw.get("sitemap") or f"{board}/sitemap.xml", p, kw, set()):
         job = _JOB.search(loc)
         if job:
+            # The big boards list some jobs in two of their sitemap_jobsN files; counted twice,
+            # Accel showed 2,111 AI postings where 1,777 exist.
+            if loc in seen_jobs:
+                continue
+            seen_jobs.add(loc)
             slug = job.group(1)
             p.jobs.append({"company_slug": slug, "company": name_from_slug(slug),
                            "title": title_from_slug(job.group(3)), "url": loc})

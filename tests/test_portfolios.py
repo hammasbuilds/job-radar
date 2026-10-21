@@ -175,3 +175,11 @@ def test_the_page_title_restores_the_level_the_address_lost():
     assert judge_page({"title": "Staff AI Research Engineer - Computer Vision", "text": ""})["junior"] == 0
     assert judge_page({"title": "AI Engineer", "text": "You have 5+ years of experience."})["junior"] == 0
     assert judge_page({"title": "AI Engineer", "text": "1-2 years of experience."})["junior"] == 1
+
+
+def test_a_job_listed_in_two_sitemap_files_counts_once(monkeypatch):
+    twice = JOBS.replace("</urlset>", f"<url><loc>{BOARD}/companies/quiet-labs/jobs/77-junior-computer-vision-engineer-ii</loc></url></urlset>")
+    pages = {**PAGES, f"{BOARD}/sitemap_jobs.xml": twice}
+    monkeypatch.setattr(portfolios, "get_text", lambda url, **kw: pages[url])
+    p = portfolios.fetch(PROGRAMME)
+    assert len(p.jobs) == 3
