@@ -80,7 +80,8 @@ CREATE TABLE IF NOT EXISTS lens (
     auth       TEXT,
     score      REAL NOT NULL,
     excerpt    TEXT,
-    at         TEXT NOT NULL
+    at         TEXT NOT NULL,
+    bar        TEXT NOT NULL DEFAULT ''   -- what it asks in words: 'phd', 'experienced'
 );
 CREATE INDEX IF NOT EXISTS lens_family ON lens(family);
 
@@ -266,6 +267,11 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     version = conn.execute("PRAGMA user_version").fetchone()[0]
     conn.executescript(SCHEMA)
+    # Columns added after a database was made; the lens is rebuilt by every run, so a column
+    # added here is filled by the next one.
+    lens_cols = {r[1] for r in conn.execute("PRAGMA table_info(lens)")}
+    if "bar" not in lens_cols:
+        conn.execute("ALTER TABLE lens ADD COLUMN bar TEXT NOT NULL DEFAULT ''")
     if existed and version < SCHEMA_VERSION:
         _migrate(conn, target, version)
     conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
@@ -369,8 +375,8 @@ def save(postings: list, funnel, path: Path | None = None) -> int:
                     """INSERT OR REPLACE INTO lens
                        (id, source, company, title, location, url, posted, family, track,
                         countries, regions, workplace, terms, years, level, route, auth,
-                        score, excerpt, at)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        score, excerpt, at, bar)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (posting.key, posting.source, posting.company, posting.title,
                      posting.location, posting.url,
                      posting.posted.isoformat() if posting.posted else None,
@@ -379,7 +385,8 @@ def save(postings: list, funnel, path: Path | None = None) -> int:
                      json.dumps([r for r in v.get("regions", []) if r not in ("other", "excluded")]),
                      v.get("workplace", ""), v.get("terms", ""), v.get("years"),
                      v.get("level", ""), v.get("route", ""), v.get("auth", ""),
-                     posting.score, (posting.text or "")[:600], now),
+                     posting.score, (posting.text or "")[:600], now,
+                     ",".join(v.get("bar", []))),
                 )
             conn.execute("DELETE FROM killed")
             for posting in getattr(funnel, "rejected", []):

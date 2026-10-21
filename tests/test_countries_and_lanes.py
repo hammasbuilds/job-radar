@@ -472,3 +472,21 @@ def test_yc_one_liners_that_never_say_ai_are_still_ai():
                  "Interpretability and reasoning infra for foundation models."):
         assert yc_recent._AI.search(text), text
     assert not yc_recent._AI.search("Tankless Dive Gear - Breath Autonomy at Sea")
+
+
+@pytest.mark.parametrize(("text", "flags"), [
+    ("A PhD in Computer Science is required.", ["phd"]),
+    ("You have a PhD with publications in top-tier venues.", ["phd"]),
+    ("PhD or Master's degree in CS.", []),
+    ("PhD preferred.", []),
+    ("Extensive and proven track record of shipping deep learning systems.", ["experienced"]),
+    ("We are seeking experienced AI scientists.", ["experienced"]),
+    ("Mentorship from experienced AI engineers and architects.", []),
+    ("DeepLight AI is a specialist consultancy with extensive experience in data.", []),
+    ("Proven experience with Python is a plus.", []),
+    ("Some experience with PyTorch.", []),
+])
+def test_what_a_posting_asks_for_in_words(text, flags):
+    from jobradar.filters import seniority
+
+    assert seniority.bar_flags(text) == flags

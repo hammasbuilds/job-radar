@@ -196,6 +196,53 @@ def korean_years(text: str) -> int | None:
     return max(found) if found else None
 
 
+# What a posting asks for in words rather than years. A reviewer opened 16 "junior" roles and
+# 8 were not: "PhD ... with publications in top-tier venues", "extensive and proven track
+# record of shipping deep learning systems", "experienced AI scientists". No number to read, so
+# the years gate let them through. These are flags the page shows and filters on, not kills:
+# a sentence can be read wrongly, and a hidden role cannot be checked.
+_PHD = re.compile(
+    r"\b(?:requires?|must (?:have|hold)|need(?:s)? (?:to have )?)\s+(?:a\s+)?(?:phd|ph\.d\.?|doctorate)\b"
+    r"|\b(?:phd|ph\.d\.?|doctorate|doctoral degree)\b[^.;]{0,60}?\b(?:is |are )?(?:required|mandatory|essential)\b"
+    r"|\bphd\b[^.;]{0,40}\bwith (?:first-author )?publications\b",
+    re.I)
+_PHD_ALT = re.compile(r"\b(?:master'?s|msc|m\.s\.|ms|bachelor'?s|bsc|b\.s\.|bs|or equivalent)\b", re.I)
+# "Proven experience" alone is in junior postings too, so only the stronger phrasings count.
+_EXPERIENCED = re.compile(
+    r"\b(?:extensive|significant|substantial)\s+(?:and\s+proven\s+)?(?:industry\s+|professional\s+|"
+    r"hands-on\s+|production\s+)?(?:experience|track record)\b"
+    r"|\bproven track record\b"
+    r"|\bexperienced\s+(?:ai\s+|ml\s+|machine learning\s+|research\s+)?(?:scientists?|engineers?|researchers?)\b"
+    r"|\bseasoned\b|\bsenior[- ]level\b",
+    re.I)
+_SOFT = re.compile(r"\b(?:preferred|a plus|nice to have|bonus|ideally|desirable)\b", re.I)
+# "DeepLight AI is a specialist consultancy with extensive experience implementing..." is the
+# company describing itself, not the candidate it wants.
+_ABOUT_US = re.compile(r"\b(?:is an?|are an?|we are an?|we're an?|our (?:team|company|firm|people))\b"
+                       r"|\b(?:consultancy|company|firm|agency|startup) with\b", re.I)
+
+
+_THE_TEAM = re.compile(r"\b(?:from|with|alongside|by|among|of|our)\s+(?:highly\s+|very\s+)?$", re.I)
+
+
+def bar_flags(text: str) -> list[str]:
+    """['phd'] / ['experienced'] when a sentence of the posting requires them."""
+    flags: list[str] = []
+    for sentence in _SENTENCE.split(text or ""):
+        if _SOFT.search(sentence):
+            continue
+        if "phd" not in flags and _PHD.search(sentence) and not _PHD_ALT.search(sentence):
+            flags.append("phd")
+        hit = _EXPERIENCED.search(sentence)
+        # "Mentorship from experienced AI engineers" is the team the junior joins.
+        if hit and hit.group(0).lower().startswith("experienced") and _THE_TEAM.search(
+                sentence[max(0, hit.start() - 24):hit.start()]):
+            hit = None
+        if "experienced" not in flags and hit and not _ABOUT_US.search(sentence):
+            flags.append("experienced")
+    return flags
+
+
 def years_required(text: str) -> int | None:
     """The experience the posting requires, in years, or None if it states none."""
     required: list[int] = []

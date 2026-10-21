@@ -173,6 +173,7 @@ def judge(posting) -> dict:
                           seniority.years_in_title(posting.title),
                           seniority.korean_years(posting.text)) if y is not None]
     years = max(stated) if stated else None
+    bar = seniority.bar_flags(posting.text)
     in_pakistan = posting.source == "njp" or \
         places.R_PAKISTAN in _regions(posting, scope, scope_why)
     public = in_pakistan and families.is_public_computing(
@@ -190,6 +191,7 @@ def judge(posting) -> dict:
         "role": fit.role_match(posting.title) or "",
         "level": level, "level_why": level_why,
         "years": years,
+        "bar": bar,
         "years_why": (f"asks for {years}+ years" if years
                       else "no experience requirement stated"),
         "scope": scope, "scope_why": scope_why,
