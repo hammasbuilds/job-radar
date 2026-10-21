@@ -223,3 +223,19 @@ def test_every_fetch_script_is_covered_by_the_launcher():
     fetchers = {p.name for p in (root / "scripts").glob("fetch*.py")}
     missing = [f for f in fetchers if f not in launcher]
     assert not missing, f"launcher does not run: {missing}"
+
+
+def test_an_offline_replay_does_not_empty_today(db, monkeypatch):
+    import time
+
+    new = make(company="Fresh Co", title="Computer Vision Engineer")
+    monkeypatch.delenv("JOBRADAR_OFFLINE", raising=False)  # conftest makes every test offline
+    store.save([new], funnel(), db)  # the live crawl that found it
+    time.sleep(1.1)  # runs are stamped to the second
+    monkeypatch.setenv("JOBRADAR_OFFLINE", "1")
+    store.save([make(company="Fresh Co", title="Computer Vision Engineer")], funnel(), db)
+    assert [p["company"] for p in store.newest(path=db)] == ["Fresh Co"]
+    monkeypatch.delenv("JOBRADAR_OFFLINE")
+    time.sleep(1.1)
+    store.save([make(company="Fresh Co", title="Computer Vision Engineer")], funnel(), db)
+    assert store.newest(path=db) == []  # a second live run saw nothing new

@@ -406,6 +406,9 @@ def save(postings: list, funnel, path: Path | None = None) -> int:
                  json.dumps({"killed": funnel.killed, "sections": funnel.sections,
                              "duplicates": funnel.duplicates,
                              "after_dedup": funnel.after_dedup,
+                             # A replay of the cache observes nothing new; Today must not
+                             # treat it as the run that new postings are counted from.
+                             "offline": bool(config.offline()),
                              # Rendered once, in pipeline order, so the
                              # dashboard shows the same funnel as the console.
                              "lines": funnel.as_lines()})),
@@ -486,7 +489,12 @@ def newest(limit: int = 40, path: Path | None = None) -> list[dict]:
     """
     conn = connect(path)
     try:
-        last = conn.execute("SELECT MAX(at) AS t FROM run").fetchone()["t"]
+        # The most recent LIVE run. An offline replay re-reads the cache: run after a crawl, it
+        # made the crawl's 22 new postings "old" and Today showed the 1 the replay itself kept.
+        # Postings first kept by a later replay still count (first_seen >= that run).
+        last = conn.execute(
+            "SELECT MAX(at) AS t FROM run WHERE COALESCE(json_extract(funnel, '$.offline'), 0) = 0"
+        ).fetchone()["t"] or conn.execute("SELECT MAX(at) AS t FROM run").fetchone()["t"]
         if not last:
             return []
         rows = conn.execute(
@@ -498,7 +506,7 @@ def newest(limit: int = 40, path: Path | None = None) -> list[dict]:
                        ) AS rank_in_company,
                        COUNT(*) OVER (PARTITION BY p.company) AS at_company
                 FROM posting p LEFT JOIN application a ON a.posting_id = p.id
-                WHERE p.first_seen = ? AND p.section != ''
+                WHERE p.first_seen >= ? AND p.section != ''
             )
             SELECT * FROM ranked WHERE rank_in_company <= ?
             ORDER BY score DESC LIMIT ?
