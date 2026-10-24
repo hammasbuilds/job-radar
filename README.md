@@ -10,8 +10,6 @@ about twenty minutes each.
 So the value here is not the thousands of jobs it finds. It is the thousands it **kills
 before you read them, with the reason visible**.
 
-Private repository. See [DO-NOT-PUBLISH.md](DO-NOT-PUBLISH.md).
-
 ## Input / Output
 
 Two ways to see it run without touching the network.
@@ -321,7 +319,6 @@ scripts/
   fetch_yc.py        the YC directory and its boards
   probe_companies.py which seeded slugs resolve
   evaluate.py        scores against a hand-labelled set kept outside git (eval/)
-  install-hooks.sh   the pre-push guard that keeps this private
 tests/fixtures/dryrun/  invented API responses for the dry run
 ```
 
